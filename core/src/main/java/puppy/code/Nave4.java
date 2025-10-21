@@ -13,6 +13,7 @@ import com.badlogic.gdx.math.MathUtils;
 
 public class Nave4 extends GameObject implements IDestruible {
 
+
 	private boolean destruida = false;
     private int vidas = 3;
     private Sprite spr;
@@ -23,6 +24,10 @@ public class Nave4 extends GameObject implements IDestruible {
     private float tiempoHeridoMax = 0.5f;
     private float tiempoHerido;
     private float stateTime = 0 ;
+    private int nivelArma = 0; // 0=base, 1=doble, 2=triple ... hasta le n nivle :D
+    private final int MAX_NIVEL_ARMA = 2; // El nivel máximo que queremos (0, 1, 2 ... n) , n = 2 por ahora , testar
+    private IFireStrategy fireStrategy;
+
 
     public Nave4(float x, float y, Texture tx, Sound soundChoque, Texture txBala, Sound soundBala) {
         super(x ,y,tx) ;
@@ -33,7 +38,7 @@ public class Nave4 extends GameObject implements IDestruible {
     	spr.setPosition(x, y);
     	//spr.setOriginCenter();
     	spr.setBounds(x, y, 45, 45);
-
+        this.fireStrategy = new OffsetFireStrategy(new float[]{ 0f });
 
 
     }
@@ -45,6 +50,10 @@ public class Nave4 extends GameObject implements IDestruible {
             herido = true;
             tiempoHerido = tiempoHeridoMax;
             sonidoHerido.play();
+
+            nivelArma = 0 ;
+            fireStrategy = new OffsetFireStrategy(new float[]{ 0f });
+
 
             if (vidas <= 0) {
                 destruida = true;
@@ -145,16 +154,28 @@ public class Nave4 extends GameObject implements IDestruible {
                 herido = false ;
             }
 
+
+
+        }
+
             //------------- disparos ------------
 
-        }
-
         if(Gdx.input.isKeyJustPressed(Input.Keys.SPACE)){
-            Bullet bala = new Bullet(spr.getX() + spr.getWidth() / 2 - 5, spr.getY() + spr.getHeight() - 5, 0, 3, txBala);
-            juego.agregarBala(bala);
+            float spawnX = spr.getX() + spr.getWidth() / 2 - 5;
+            float spawnY = spr.getY() + spr.getHeight() - 5;
 
-            soundBala.play(); //SFX a cambiar
+            fireStrategy.fire(juego, txBala, spawnX, spawnY);
+            soundBala.play();
         }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+            System.out.println("CHEAT: Generando PowerUp de ARMA!");
+            juego.crearPowerUpEn(position.x, position.y + 100, TipoPowerUp.MEJORA_ARMA);
+        }
+
+
+
+
     }
 
     @Override
@@ -196,6 +217,28 @@ public class Nave4 extends GameObject implements IDestruible {
     public boolean estaHerido() {
  	   return herido;
     }
+
+    public void mejorarArma(PantallaJuego juego) {
+
+        nivelArma++;
+
+        switch (nivelArma) {
+            case 1: // Nivel 1: Doble
+                fireStrategy = new OffsetFireStrategy(new float[]{ -10f, 10f });
+                break;
+            case 2: // Nivel 2: Triple
+                fireStrategy = new OffsetFireStrategy(new float[]{ -15f, 0f, 15f });
+                break;
+            default: // Maximo alcanzado
+                nivelArma = MAX_NIVEL_ARMA;
+                juego.agregarScore(100);
+                break;
+        }
+    }
+
+
+
+
 
     //public boolean isDestruida() {return destruida;}
     public int getX() {return (int) spr.getX();}

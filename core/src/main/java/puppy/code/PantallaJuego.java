@@ -30,6 +30,8 @@ public class PantallaJuego implements Screen {
 	private  ArrayList<Ball2> balls1 = new ArrayList<>();
 	private  ArrayList<Ball2> balls2 = new ArrayList<>();
 	private  ArrayList<Bullet> balas = new ArrayList<>();
+    private ArrayList<PowerUp> powerUps = new ArrayList<>();
+    private Texture powerUpTexture;
 
 
 	public PantallaJuego(SpaceNavigation game, int ronda, int vidas, int score,
@@ -52,6 +54,8 @@ public class PantallaJuego implements Screen {
 		gameMusic.setLooping(true);
 		gameMusic.setVolume(0.5f);
 		gameMusic.play();
+
+        powerUpTexture = new Texture(Gdx.files.internal("Rocket2.png"));
 
 	    // cargar imagen de la nave, 64x64
 	    nave = new Nave4((float)Gdx.graphics.getWidth()/2-50,30f,new Texture(Gdx.files.internal("MainShip3.png")),
@@ -155,6 +159,32 @@ public class PantallaJuego implements Screen {
   			game.setScreen(ss);
   			dispose();
   		  }
+
+        for (int i = 0; i < powerUps.size(); i++) {
+            PowerUp p = powerUps.get(i);
+            p.update(delta, this); // mueve el power-up
+            p.draw(batch);         // dibuja el power-up
+
+            // --- colision ---
+            if (p.getHitbox().overlaps(nave.getHitbox())) {
+
+
+                aplicarEfectoPowerUp(p.getTipo());
+
+                // Destruir el power-up
+                powerUps.remove(i);
+                i--;
+            }
+        }
+
+
+
+
+
+
+
+
+
 	      batch.end();
 	      //nivel completado
 	      if (balls1.size()==0) {
@@ -207,5 +237,25 @@ public class PantallaJuego implements Screen {
 		this.explosionSound.dispose();
 		this.gameMusic.dispose();
 	}
+
+    public void crearPowerUpEn(float x, float y, TipoPowerUp tipo) {
+        powerUps.add(new PowerUp(x, y, powerUpTexture, tipo));
+    }
+
+    private void aplicarEfectoPowerUp(TipoPowerUp tipo) {
+        switch (tipo) {
+            case MEJORA_ARMA:
+                nave.mejorarArma(this);
+                // sonidoPowerUp.play(); //
+                break;
+            case RECUPERAR_COMBUSTIBLE:
+                nave.setVidas(nave.getVidas() + 1);
+                break;
+        }
+    }
+
+    public void agregarScore(int puntos){
+        score+=puntos;
+    }
 
 }
