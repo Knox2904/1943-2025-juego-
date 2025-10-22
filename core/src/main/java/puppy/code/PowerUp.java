@@ -7,7 +7,8 @@ import com.badlogic.gdx.math.Rectangle;
 enum TipoPowerUp  {
 
 	MEJORA_ARMA,
-    RECUPERAR_COMBUSTIBLE
+    COMBUSTIBLE,
+    NAVE_ALIADA
 
 }
 

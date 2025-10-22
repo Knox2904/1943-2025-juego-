@@ -32,6 +32,7 @@ public class PantallaJuego implements Screen {
 	private  ArrayList<Bullet> balas = new ArrayList<>();
     private ArrayList<PowerUp> powerUps = new ArrayList<>();
     private Texture powerUpTexture;
+    private Texture texturaAliado;
 
 
 	public PantallaJuego(SpaceNavigation game, int ronda, int vidas, int score,
@@ -55,14 +56,18 @@ public class PantallaJuego implements Screen {
 		gameMusic.setVolume(0.5f);
 		gameMusic.play();
 
-        powerUpTexture = new Texture(Gdx.files.internal("Rocket2.png"));
+        powerUpTexture = new Texture(Gdx.files.internal("powerUpDobleTiro.png"));
+        texturaAliado = new Texture(Gdx.files.internal("MainShip3.png"));
 
 	    // cargar imagen de la nave, 64x64
-	    nave = new Nave4((float)Gdx.graphics.getWidth()/2-50,30f,new Texture(Gdx.files.internal("MainShip3.png")),
+	    nave = new Nave4((float)Gdx.graphics.getWidth()/2-50,30f,
+                        new Texture(Gdx.files.internal("MainShip3.png")),
 	    				Gdx.audio.newSound(Gdx.files.internal("hurt.ogg")),
 	    				new Texture(Gdx.files.internal("Rocket2.png")),
-	    				Gdx.audio.newSound(Gdx.files.internal("pop-sound.mp3")));
-        nave.setVidas(vidas);
+	    				Gdx.audio.newSound(Gdx.files.internal("pop-sound.mp3")),
+                        texturaAliado
+                        );
+
         //crear asteroides
         Random r = new Random();
 	    for (int i = 0; i < cantAsteroides; i++) {
@@ -76,9 +81,10 @@ public class PantallaJuego implements Screen {
 	}
 
 	public void dibujaEncabezado() {
-		CharSequence str = "Vidas: "+nave.getVidas()+" Ronda: "+ronda;
+        String fuelTexto = "FUEL: " + (int)nave.getCombustible();
+        game.getFont().draw(batch, fuelTexto, 10, 30);
 		game.getFont().getData().setScale(2f);
-		game.getFont().draw(batch, str, 10, 30);
+		game.getFont().draw(batch, fuelTexto, 10, 30);
 		game.getFont().draw(batch, "Score:"+this.score, Gdx.graphics.getWidth()-150, 30);
 		game.getFont().draw(batch, "HighScore:"+game.getHighScore(), Gdx.graphics.getWidth()/2-100, 30);
 	}
@@ -246,10 +252,16 @@ public class PantallaJuego implements Screen {
         switch (tipo) {
             case MEJORA_ARMA:
                 nave.mejorarArma(this);
-                // sonidoPowerUp.play(); //
+                // sonidoPowerUpMejorarArma.play(); a crear
                 break;
-            case RECUPERAR_COMBUSTIBLE:
-                nave.setVidas(nave.getVidas() + 1);
+            case COMBUSTIBLE:
+                nave.agregarCombustible(40f);
+                // sonidoPowerUpAgregarCombustible.play(); a crear
+                break;
+
+            case NAVE_ALIADA:
+                nave.agregarAliado();
+                // sonidoPowerUpAliado.play(); a crear
                 break;
         }
     }

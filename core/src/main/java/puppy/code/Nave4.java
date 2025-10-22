@@ -9,17 +9,22 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 
+import java.util.ArrayList;
 
 
 public class Nave4 extends GameObject implements IDestruible {
 
 
 	private boolean destruida = false;
-    private int vidas = 3;
+    private float combustible ;
+    private final float MAX_COMBUSTIBLE = 100f; // 100% de combustible
+    private final float CONSUMO_POR_SEGUNDO = 2f; // Gasto pasivo
+    private final float GOLPE_COMBUSTIBLE = 20f; // Gasto al ser golpeado
     private Sprite spr;
     private Sound sonidoHerido; //cambiar
     private Sound soundBala; //cambiar
     private Texture txBala;
+    private Texture txAliado;
     private boolean herido = false;
     private float tiempoHeridoMax = 0.5f;
     private float tiempoHerido;
@@ -27,26 +32,29 @@ public class Nave4 extends GameObject implements IDestruible {
     private int nivelArma = 0; // 0=base, 1=doble, 2=triple ... hasta le n nivle :D
     private final int MAX_NIVEL_ARMA = 2; // El nivel máximo que queremos (0, 1, 2 ... n) , n = 2 por ahora , testar
     private IFireStrategy fireStrategy;
+    private ArrayList<SideShip> aliados = new ArrayList<>();
 
 
-    public Nave4(float x, float y, Texture tx, Sound soundChoque, Texture txBala, Sound soundBala) {
+    public Nave4(float x, float y, Texture tx, Sound soundChoque, Texture txBala, Sound soundBala , Texture txAliado) {
         super(x ,y,tx) ;
         sonidoHerido = soundChoque;
     	this.soundBala = soundBala;
     	this.txBala = txBala;
+        this.combustible = MAX_COMBUSTIBLE ;
     	spr = new Sprite(tx);
     	spr.setPosition(x, y);
     	//spr.setOriginCenter();
     	spr.setBounds(x, y, 45, 45);
         this.fireStrategy = new OffsetFireStrategy(new float[]{ 0f });
+        this.txAliado = txAliado;
 
 
     }
 
     @Override
-    public void recibirHit(int cantidad) {
+    public void recibirHit(int cantidad , float delta) {
         if (!herido) {
-            vidas -= cantidad;
+            combustible -= CONSUMO_POR_SEGUNDO * delta;
             herido = true;
             tiempoHerido = tiempoHeridoMax;
             sonidoHerido.play();
@@ -55,7 +63,8 @@ public class Nave4 extends GameObject implements IDestruible {
             fireStrategy = new OffsetFireStrategy(new float[]{ 0f });
 
 
-            if (vidas <= 0) {
+            if (combustible <= 0) {
+                combustible = 0;
                 destruida = true;
             }
         }
@@ -68,7 +77,7 @@ public class Nave4 extends GameObject implements IDestruible {
 
     @Override
     public int getVidas() {
-        return this.vidas;
+        return (int)this.combustible;
     }
 
 
@@ -84,6 +93,7 @@ public class Nave4 extends GameObject implements IDestruible {
 
         if(!herido){
 
+            combustible -= CONSUMO_POR_SEGUNDO * delta;
             final float PLAYER_SPEED = 500f ; // testear para ver la velocidad
 
 
@@ -134,10 +144,15 @@ public class Nave4 extends GameObject implements IDestruible {
 
             spr.setPosition(x, y);
 
+            this.position.x = x;
+            this.position.y = y;
+
 
 
 
         }
+
+
 
         else{
 
@@ -158,6 +173,11 @@ public class Nave4 extends GameObject implements IDestruible {
 
         }
 
+        if (combustible <= 0) {
+            combustible = 0;
+            destruida = true;
+        }
+
             //------------- disparos ------------
 
         if(Gdx.input.isKeyJustPressed(Input.Keys.SPACE)){
@@ -173,6 +193,21 @@ public class Nave4 extends GameObject implements IDestruible {
             juego.crearPowerUpEn(position.x, position.y + 100, TipoPowerUp.MEJORA_ARMA);
         }
 
+        if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
+            System.out.println("CHEAT: Generando PowerUp de COMBUSTIBLE!");
+            juego.crearPowerUpEn(position.x, position.y + 100, TipoPowerUp.COMBUSTIBLE);
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_9)) {
+            System.out.println("CHEAT: Generando PowerUp NAVE ALIADA!");
+            juego.crearPowerUpEn(position.x, position.y + 100, TipoPowerUp.NAVE_ALIADA);
+        }
+
+
+        for (SideShip aliado : aliados) {
+            aliado.setTargetPosition(position.x, position.y);
+            aliado.update(delta, juego);
+        }
 
 
 
@@ -196,6 +231,10 @@ public class Nave4 extends GameObject implements IDestruible {
         }
 
         spr.draw(batch);
+
+        for (SideShip aliado : aliados) {
+            aliado.draw(batch);
+        }
     }
 
     public boolean checkCollision(Ball2 b) {
@@ -203,11 +242,11 @@ public class Nave4 extends GameObject implements IDestruible {
 
         	//actualizar vidas y herir
 
-            vidas--;
+            combustible -= GOLPE_COMBUSTIBLE;
             herido = true;
   		    tiempoHerido=tiempoHeridoMax;
   		    sonidoHerido.play();
-            if (vidas<=0)
+            if (combustible<=0)
           	    destruida = true;
             return true;
         }
@@ -237,12 +276,37 @@ public class Nave4 extends GameObject implements IDestruible {
     }
 
 
+    public void agregarCombustible(float cantidad) {
+        this.combustible += cantidad;
+        if (this.combustible > MAX_COMBUSTIBLE) {
+            this.combustible = MAX_COMBUSTIBLE;
+        }
+    }
+
+
+    public void agregarAliado() {
+        if (aliados.size() < 2) {
+
+            float offsetX = (aliados.size() == 0) ? -60f : 60f;
+
+            SideShip nuevoAliado = new SideShip(
+                position.x,       // X actual de la nave
+                position.y,       // Y actual de la nave
+                this.txAliado,    // La textura del aliado
+                this.txBala,      // La textura de la BALA (que disparará el aliado)
+                offsetX           // El desplazamiento
+            );
+
+            aliados.add(nuevoAliado);
+        }
+    }
 
 
 
     //public boolean isDestruida() {return destruida;}
     public int getX() {return (int) spr.getX();}
     public int getY() {return (int) spr.getY();}
-	public void setVidas(int vidas2) {vidas = vidas2;}
+    public float getMaxCombustible() { return this.MAX_COMBUSTIBLE; }
+    public float getCombustible() { return this.combustible; }
 
 }
