@@ -1,5 +1,6 @@
 package puppy.code;
 
+import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Sound;
@@ -8,120 +9,304 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 
+import java.util.ArrayList;
 
 
-public class Nave4 {
-	
+public class Nave4 extends GameObject implements IDestruible {
+
+
 	private boolean destruida = false;
-    private int vidas = 3;
-    private float xVel = 0;
-    private float yVel = 0;
+    private float combustible ;
+    private final float MAX_COMBUSTIBLE = 100f; // 100% de combustible
+    private final float CONSUMO_POR_SEGUNDO = 2f; // Gasto pasivo
+    private final float GOLPE_COMBUSTIBLE = 20f; // Gasto al ser golpeado
     private Sprite spr;
-    private Sound sonidoHerido;
-    private Sound soundBala;
+    private Sound sonidoHerido; //cambiar
+    private Sound soundBala; //cambiar
     private Texture txBala;
+    private Texture txAliado;
     private boolean herido = false;
-    private int tiempoHeridoMax=50;
-    private int tiempoHerido;
-    
-    public Nave4(int x, int y, Texture tx, Sound soundChoque, Texture txBala, Sound soundBala) {
-    	sonidoHerido = soundChoque;
+    private float tiempoHeridoMax = 0.5f;
+    private float tiempoHerido;
+    private float stateTime = 0 ;
+    private int nivelArma = 0; // 0=base, 1=doble, 2=triple ... hasta le n nivle :D
+    private final int MAX_NIVEL_ARMA = 2; // El nivel máximo que queremos (0, 1, 2 ... n) , n = 2 por ahora , testar
+    private IFireStrategy fireStrategy;
+    private ArrayList<SideShip> aliados = new ArrayList<>();
+
+
+    public Nave4(float x, float y, Texture tx, Sound soundChoque, Texture txBala, Sound soundBala , Texture txAliado) {
+        super(x ,y,tx) ;
+        sonidoHerido = soundChoque;
     	this.soundBala = soundBala;
     	this.txBala = txBala;
+        this.combustible = MAX_COMBUSTIBLE ;
     	spr = new Sprite(tx);
     	spr.setPosition(x, y);
     	//spr.setOriginCenter();
     	spr.setBounds(x, y, 45, 45);
+        this.fireStrategy = new OffsetFireStrategy(new float[]{ 0f });
+        this.txAliado = txAliado;
+
 
     }
-    public void draw(SpriteBatch batch, PantallaJuego juego){
-        float x =  spr.getX();
-        float y =  spr.getY();
+
+    @Override
+    public void recibirHit(int cantidad , float delta) {
         if (!herido) {
-	        // que se mueva con teclado
-	        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) xVel--;
-	        if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) xVel++;
-        	if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) yVel--;     
-	        if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) yVel++;
-        	
-	     /*   if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) spr.setRotation(++rotacion);
-	        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) spr.setRotation(--rotacion);
-	        
-	        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
-	        	xVel -=Math.sin(Math.toRadians(rotacion));
-	        	yVel +=Math.cos(Math.toRadians(rotacion));
-	        	System.out.println(rotacion+" - "+Math.sin(Math.toRadians(rotacion))+" - "+Math.cos(Math.toRadians(rotacion))) ;    
-	        }
-	        if (Gdx.input.isKeyPressed(Input.Keys.DOWN)){
-	        	xVel +=Math.sin(Math.toRadians(rotacion));
-	        	yVel -=Math.cos(Math.toRadians(rotacion));
-	        	     
-	        }*/
-	        
-	        // que se mantenga dentro de los bordes de la ventana
-	        if (x+xVel < 0 || x+xVel+spr.getWidth() > Gdx.graphics.getWidth())
-	        	xVel*=-1;
-	        if (y+yVel < 0 || y+yVel+spr.getHeight() > Gdx.graphics.getHeight())
-	        	yVel*=-1;
-	        
-	        spr.setPosition(x+xVel, y+yVel);   
-         
- 		    spr.draw(batch);
-        } else {
-           spr.setX(spr.getX()+MathUtils.random(-2,2));
- 		   spr.draw(batch); 
- 		  spr.setX(x);
- 		   tiempoHerido--;
- 		   if (tiempoHerido<=0) herido = false;
- 		 }
-        // disparo
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {         
-          Bullet  bala = new Bullet(spr.getX()+spr.getWidth()/2-5,spr.getY()+ spr.getHeight()-5,0,3,txBala);
-	      juego.agregarBala(bala);
-	      soundBala.play();
+            combustible -= CONSUMO_POR_SEGUNDO * delta;
+            herido = true;
+            tiempoHerido = tiempoHeridoMax;
+            sonidoHerido.play();
+
+            nivelArma = 0 ;
+            fireStrategy = new OffsetFireStrategy(new float[]{ 0f });
+
+
+            if (combustible <= 0) {
+                combustible = 0;
+                destruida = true;
+            }
         }
-       
     }
-      
+
+    @Override
+    public boolean estaDestruido() {
+        return !herido && destruida;
+    }
+
+    @Override
+    public int getVidas() {
+        return (int)this.combustible;
+    }
+
+
+    //-------- logica propia -----------
+
+    @Override
+    public void update(float delta, PantallaJuego juego){
+
+        stateTime += delta;
+
+
+        //--------------movimiento-----------------
+
+        if(!herido){
+
+            combustible -= CONSUMO_POR_SEGUNDO * delta;
+            final float PLAYER_SPEED = 500f ; // testear para ver la velocidad
+
+
+            float x = spr.getX();
+            float y = spr.getY();
+
+
+            if(Gdx.input.isKeyPressed(Input.Keys.A)){
+                x-=PLAYER_SPEED * delta;
+            }
+
+            if(Gdx.input.isKeyPressed(Input.Keys.D)){
+                x+=PLAYER_SPEED * delta;
+            }
+
+            if(Gdx.input.isKeyPressed(Input.Keys.W)){
+                y+=PLAYER_SPEED * delta;
+            }
+
+            if(Gdx.input.isKeyPressed(Input.Keys.S)){
+                y-=PLAYER_SPEED * delta;
+            }
+
+
+            //---------------limites para el jugador y la pantalla------------
+
+
+            // izquierdo
+            if(x < 0 ) { x = 0 ; }
+
+
+            //derecho
+
+            float screenWidth = Gdx.graphics.getWidth();
+            if(x > screenWidth - spr.getWidth()) {
+                x = screenWidth - spr.getWidth() ;
+            }
+
+            // inferior
+            if(y < 0 ) { y = 0 ; }
+
+
+            //superior
+            float screenHeight = Gdx.graphics.getHeight();
+            if(y > screenHeight - spr.getHeight()) {
+                y = screenHeight - spr.getHeight() ;
+            }
+
+            spr.setPosition(x, y);
+
+            this.position.x = x;
+            this.position.y = y;
+
+
+
+
+        }
+
+
+
+        else{
+
+            //invencibilidad para no ser oneshoteado , Iframes
+
+            spr.setX(spr.getX() + MathUtils.random(-2, 2));
+
+            spr.setX(spr.getX());
+
+            tiempoHerido -= delta ;
+
+
+            if(tiempoHerido <= 0 ){
+                herido = false ;
+            }
+
+
+
+        }
+
+        if (combustible <= 0) {
+            combustible = 0;
+            destruida = true;
+        }
+
+            //------------- disparos ------------
+
+        if(Gdx.input.isKeyJustPressed(Input.Keys.SPACE)){
+            float spawnX = spr.getX() + spr.getWidth() / 2 - 5;
+            float spawnY = spr.getY() + spr.getHeight() - 5;
+
+            fireStrategy.fire(juego, txBala, spawnX, spawnY);
+            soundBala.play();
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+            System.out.println("CHEAT: Generando PowerUp de ARMA!");
+            juego.crearPowerUpEn(position.x, position.y + 100, TipoPowerUp.MEJORA_ARMA);
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
+            System.out.println("CHEAT: Generando PowerUp de COMBUSTIBLE!");
+            juego.crearPowerUpEn(position.x, position.y + 100, TipoPowerUp.COMBUSTIBLE);
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_9)) {
+            System.out.println("CHEAT: Generando PowerUp NAVE ALIADA!");
+            juego.crearPowerUpEn(position.x, position.y + 100, TipoPowerUp.NAVE_ALIADA);
+        }
+
+
+        for (SideShip aliado : aliados) {
+            aliado.setTargetPosition(position.x, position.y);
+            aliado.update(delta, juego);
+        }
+
+
+
+    }
+
+    @Override
+    public void draw(SpriteBatch batch) {
+        if (herido) {
+
+
+            float flicker = (float) Math.sin(stateTime * 30);
+
+            float alpha = 0.5f + 0.5f * flicker;
+
+            spr.setColor(1, 1, 1, alpha);
+
+        }
+        else {
+
+            spr.setColor(1, 1, 1, 1);
+        }
+
+        spr.draw(batch);
+
+        for (SideShip aliado : aliados) {
+            aliado.draw(batch);
+        }
+    }
+
     public boolean checkCollision(Ball2 b) {
         if(!herido && b.getArea().overlaps(spr.getBoundingRectangle())){
-        	// rebote
-            if (xVel ==0) xVel += b.getXSpeed()/2;
-            if (b.getXSpeed() ==0) b.setXSpeed(b.getXSpeed() + (int)xVel/2);
-            xVel = - xVel;
-            b.setXSpeed(-b.getXSpeed());
-            
-            if (yVel ==0) yVel += b.getySpeed()/2;
-            if (b.getySpeed() ==0) b.setySpeed(b.getySpeed() + (int)yVel/2);
-            yVel = - yVel;
-            b.setySpeed(- b.getySpeed());
-            // despegar sprites
-      /*      int cont = 0;
-            while (b.getArea().overlaps(spr.getBoundingRectangle()) && cont<xVel) {
-               spr.setX(spr.getX()+Math.signum(xVel));
-            }   */
+
         	//actualizar vidas y herir
-            vidas--;
+
+            combustible -= GOLPE_COMBUSTIBLE;
             herido = true;
   		    tiempoHerido=tiempoHeridoMax;
   		    sonidoHerido.play();
-            if (vidas<=0) 
-          	    destruida = true; 
+            if (combustible<=0)
+          	    destruida = true;
             return true;
         }
         return false;
     }
-    
-    public boolean estaDestruido() {
-       return !herido && destruida;
-    }
+
     public boolean estaHerido() {
  	   return herido;
     }
-    
-    public int getVidas() {return vidas;}
+
+    public void mejorarArma(PantallaJuego juego) {
+
+        nivelArma++;
+
+        switch (nivelArma) {
+            case 1: // Nivel 1: Doble
+                fireStrategy = new OffsetFireStrategy(new float[]{ -10f, 10f });
+                break;
+            case 2: // Nivel 2: Triple
+                fireStrategy = new OffsetFireStrategy(new float[]{ -15f, 0f, 15f });
+                break;
+            default: // Maximo alcanzado
+                nivelArma = MAX_NIVEL_ARMA;
+                juego.agregarScore(100);
+                break;
+        }
+    }
+
+
+    public void agregarCombustible(float cantidad) {
+        this.combustible += cantidad;
+        if (this.combustible > MAX_COMBUSTIBLE) {
+            this.combustible = MAX_COMBUSTIBLE;
+        }
+    }
+
+
+    public void agregarAliado() {
+        if (aliados.size() < 2) {
+
+            float offsetX = (aliados.size() == 0) ? -60f : 60f;
+
+            SideShip nuevoAliado = new SideShip(
+                position.x,       // X actual de la nave
+                position.y,       // Y actual de la nave
+                this.txAliado,    // La textura del aliado
+                this.txBala,      // La textura de la BALA (que disparará el aliado)
+                offsetX           // El desplazamiento
+            );
+
+            aliados.add(nuevoAliado);
+        }
+    }
+
+
+
     //public boolean isDestruida() {return destruida;}
     public int getX() {return (int) spr.getX();}
     public int getY() {return (int) spr.getY();}
-	public void setVidas(int vidas2) {vidas = vidas2;}
+    public float getMaxCombustible() { return this.MAX_COMBUSTIBLE; }
+    public float getCombustible() { return this.combustible; }
+
 }
