@@ -36,8 +36,11 @@ public abstract class EntidadJuego {
 
     public Rectangle getArea() {
         return spr.getBoundingRectangle();
-    }
 
+    }
+}
+
+    /* logica para un enemigo siguiente, todavia no se prueba
     public boolean isDestroyed() {
         return destroyed;
     }
@@ -46,7 +49,7 @@ public abstract class EntidadJuego {
         this.destroyed = true;
     }
 
-    // Getters para la posición (útiles para la IA)
+    // Getters para la posición 
     public float getX() {
         return x;
     }
@@ -55,3 +58,4 @@ public abstract class EntidadJuego {
         return y;
     }
 }
+*/
