@@ -70,14 +70,30 @@ public class PantallaJuego implements Screen {
 
         //crear asteroides
         Random r = new Random();
-	    for (int i = 0; i < cantAsteroides; i++) {
-	        Ball2 bb = new Ball2(r.nextInt((int)Gdx.graphics.getWidth()),
-	  	            50+r.nextInt((int)Gdx.graphics.getHeight()-50),
-	  	            20+r.nextInt(10), velXAsteroides+r.nextInt(4), velYAsteroides+r.nextInt(4),
-	  	            new Texture(Gdx.files.internal("aGreyMedium4.png")));
-	  	    balls1.add(bb);
-	  	    balls2.add(bb);
-	  	}
+
+
+        float velocidadBaseX = 100.0f;
+        float velocidadBaseY = 100.0f;
+
+        for (int i = 0; i < cantAsteroides; i++) {
+
+            // 2. Genera las velocidades finales como float, se cambio para que ahora se ocupen con fps, por que su velocidad era erratica.
+            float velFinalX = velocidadBaseX + r.nextInt(50);
+            float velFinalY = velocidadBaseY + r.nextInt(50);
+
+
+            Ball2 bb = new Ball2(
+                r.nextInt(Gdx.graphics.getWidth()),
+                50 + r.nextInt(Gdx.graphics.getHeight() - 50),
+                20 + r.nextInt(10),
+                velFinalX,
+                velFinalY,
+                new Texture(Gdx.files.internal("aGreyMedium4.png"))
+            );
+
+            balls1.add(bb);
+            balls2.add(bb);
+        }
 	}
 
 	public void dibujaEncabezado() {
@@ -123,9 +139,9 @@ public class PantallaJuego implements Screen {
 		            }
 		      }
 		      //actualizar movimiento de asteroides dentro del area
-		      for (Ball2 ball : balls1) {
-		          ball.update();
-		      }
+              for (Ball2 ball : balls1) {
+                  ball.update(delta); // <--- ¡AHORA LE PASAS EL DELTA!
+              }
 		      //colisiones entre asteroides y sus rebotes
 		      for (int i=0;i<balls1.size();i++) {
 		    	Ball2 ball1 = balls1.get(i);
