@@ -49,7 +49,7 @@ public abstract class EntidadJuego {
         this.destroyed = true;
     }
 
-    // Getters para la posición 
+    // Getters para la posición
     public float getX() {
         return x;
     }
