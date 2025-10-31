@@ -7,48 +7,29 @@ import com.badlogic.gdx.math.MathUtils; // Importa MathUtils para los cálculos
 // Kamikaze hereda de EntidadJuego
 public class Kamikaze extends EntidadJuego {
 
-    // Componentes de velocidad (float primitivo es mejor que Float objeto)
+    // Componentes de velocidad
     private float xSpeed;
     private float ySpeed;
+    //la nave del jugador.
+    private Nave4 objetivo;
 
     /**
      * Constructor del Kamikaze.
      * @param spawnX Posición X donde aparece.
      * @param spawnY Posición Y donde aparece (arriba de la pantalla).
-     * @param jugadorX Posición X del jugador (el objetivo inicial).
-     * @param jugadorY Posición Y del jugador (el objetivo inicial).
+     * @param naveObjetivo La instancia de la Nave4 del jugador.
      * @param tx La textura (imagen) del kamikaze.
      * @param velocidadE La velocidad base (ej: 375.0f) que usará.
      */
-    public Kamikaze(float spawnX, float spawnY, float jugadorX , float jugadorY, Texture tx, float velocidadE ) {
+
+    public Kamikaze(float spawnX, float spawnY, Nave4 naveObjetivo, Texture tx, float velocidadE ) {
 
         // 1. Llama al constructor padre (EntidadJuego)
         //    Esto inicializa 'x', 'y', 'spr' y guarda 'velocidadE' en el campo 'velocidadPEI' heredado.
-        super(tx, spawnX, spawnY, velocidadE);
+        super(tx, spawnX, spawnY, velocidadE,1);
 
         // --- LÓGICA DE DIRECCIÓN FIJA ---
-        // 2. Calcula el vector director (la dirección hacia el objetivo)
-        float deltaX = jugadorX - spawnX;
-        float deltaY = jugadorY - spawnY;
-
-        // 3. Calcula la distancia al objetivo
-        float distancia = (float) Math.sqrt(deltaX * deltaX + deltaY * deltaY); // len() es como sqrt(x*x + y*y)
-
-        // 4. Calcula y guarda las velocidades X e Y (¡solo se hace UNA VEZ!)
-        if (distancia > 0) {
-            // Usa 'this.velocidadPEI' (el campo heredado que 'super' acaba de establecer)
-            this.xSpeed = (deltaX / distancia) * this.velocidadPEI;
-            this.ySpeed = (deltaY / distancia) * this.velocidadPEI;
-        } else {
-            // Si aparece justo sobre el jugador, que baje recto
-            this.xSpeed = 0;
-            this.ySpeed = -this.velocidadPEI; // Hacia abajo
-        }
-
-        // 5. (Opcional) Rota el sprite para que "mire" hacia donde va
-        float angulo = MathUtils.atan2(deltaY, deltaX) * MathUtils.radiansToDegrees;
-        // Usa 'spr' (heredado de EntidadJuego)
-        spr.setRotation(angulo - 90); // '- 90' es porque tu sprite apunta hacia arriba
+        this.objetivo = naveObjetivo;
     }
 
     /**
@@ -59,15 +40,39 @@ public class Kamikaze extends EntidadJuego {
     @Override
     public void update(float delta) {
 
-        // 6. Mueve la entidad usando las velocidades FIJAS (calculadas en el constructor)
-        //    Usa 'x' e 'y' (heredados de EntidadJuego)
+        //posicion actual del objetivo.
+        float targetX = objetivo.getX();
+        float targetY = objetivo.getY();
+
+        // 2. Calcula el vector director (la dirección hacia el objetivo)
+        //    (Usa 'this.x' y 'this.y' para la posición actual del enemigo)
+        float deltaX = targetX - this.x;
+        float deltaY = targetY - this.y;
+
+        // 3. Calcula la distancia
+        float distancia = (float) Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        // 4. Calcula las velocidades X e Y para ESTE FRAME, el actual.
+        float xSpeed, ySpeed;
+        if (distancia > 0) {
+            xSpeed = (deltaX / distancia) * this.velocidadPEI;
+            ySpeed = (deltaY / distancia) * this.velocidadPEI;
+        } else {
+            xSpeed = 0;
+            ySpeed = 0; // Se quedó quieto (ya llego)
+        }
+
+        // 5. Mueve la entidad usando las velocidades RECIEN CALCULADAS
         x += xSpeed * delta;
         y += ySpeed * delta;
 
-        // Actualiza la posición del sprite
         spr.setPosition(x, y);
 
-        // 7. Comprueba si se salió de la pantalla para destruirse
+        // 6.  Rota el sprite para que "mire" al jugador
+        float angulo = MathUtils.atan2(deltaY, deltaX) * MathUtils.radiansToDegrees;
+        spr.setRotation(angulo - 90);
+
+        // 7. Comprueba si se salio de la pantalla para destruirse
         float margen = 50f; // Un margen para que desaparezca fuera de vista
         if (x + spr.getWidth() < -margen || x > Gdx.graphics.getWidth() + margen ||
             y + spr.getHeight() < -margen || y > Gdx.graphics.getHeight() + margen) {

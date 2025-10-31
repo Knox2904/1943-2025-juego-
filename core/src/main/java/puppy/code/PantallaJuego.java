@@ -101,7 +101,7 @@ public class PantallaJuego implements Screen {
             float targetX = r.nextInt(Gdx.graphics.getWidth());
             float targetY = r.nextInt(Gdx.graphics.getHeight() / 2);
 
-            Kamikaze k = new Kamikaze(spawnX, spawnY, targetX, targetY, txEnemigo, velKamikaze);
+            Kamikaze k = new Kamikaze(spawnX, spawnY, this.nave, txEnemigo, velKamikaze);
             kamikazes.add(k);
         }
 	}
@@ -129,7 +129,7 @@ public class PantallaJuego implements Screen {
             b.update(); // (Sigue sin delta, como lo tenías)
             if (b.getX() < -10 || b.getX() > Gdx.graphics.getWidth() + 10 ||
                 b.getY() < -10 || b.getY() > Gdx.graphics.getHeight() + 10) {
-                b.destruir();
+                b.recibirHit(1,0);
             }
         }
 
@@ -154,31 +154,31 @@ public class PantallaJuego implements Screen {
             // colisiones entre balas y enemigos.
             for (int i = 0; i < balas.size(); i++) {
                 Bullet b = balas.get(i);
-                if (b.isDestroyed()) continue;
+                if (b.estaDestruido()) continue;
 
                 //colisiones entre bala y asteroides
                 for (Ball2 asteroide : balls1) {
-                    if (!asteroide.isDestroyed()) {
+                    if (!asteroide.estaDestruido()) {
                         // Llama al método de colisión original de Bullet
                         if (b.checkCollision(asteroide)) {
                             explosionSound.play();
-                            asteroide.destruir(); // Marca el asteroide
-                            b.destruir();         // (Asumo que checkCollision(Ball2) hace esto)
+                            asteroide.recibirHit(1,0); // Marca el asteroide
+                            b.recibirHit(1,0);
                             score += 10;
                             break; // La bala choca solo una vez
                         }
                     }
                 }
-                if (b.isDestroyed()) continue; // Si chocó, no sigas
+                if (b.estaDestruido()) continue; // Si chocó, no sigas
 
                 //ahora para revisar si colisiono con kamikaze
                 for (Kamikaze kamikaze : kamikazes) {
-                    if (!kamikaze.isDestroyed()) {
-                        // (Esto asume que añadiste checkCollision(Kamikaze k) a tu clase Bullet)
+                    if (!kamikaze.estaDestruido()) {
+
                         if (b.checkCollision(kamikaze)) {
                             explosionSound.play();
-                            kamikaze.destruir(); // Marca el kamikaze
-                            b.destruir();        // (Asumo que checkCollision(Kamikaze) hace esto)
+                            kamikaze.recibirHit(1,0); // Marca el kamikaze
+                            b.recibirHit(1,0);
                             score += 25;
                             break;
                         }
@@ -192,29 +192,37 @@ public class PantallaJuego implements Screen {
 
             // Nave vs Asteroide
             for (Ball2 asteroide : balls1) {
-                if (!asteroide.isDestroyed()) {
+                if (!asteroide.estaDestruido()) {
                     if (nave.checkCollision(asteroide.getArea())) {
-                        asteroide.destruir();
+                        asteroide.recibirHit(1,0);
                     }
                 }
             }
 
             // Nave vs Kamikaze
             for (Kamikaze kamikaze : kamikazes) {
-                if (!kamikaze.isDestroyed()) {
-                    if (nave.checkCollision(kamikaze.getArea())) {
-                        kamikaze.destruir();
+                if (!kamikaze.estaDestruido()) {
+                    // 1. Comprueba si se estan tocando FISICAMENTE, la colision a veces no destruye al kamikaze
+                    if (!kamikaze.estaDestruido() && kamikaze.getArea().overlaps(nave.getHitbox())) {
+
+                        // 2. El kamikaze siempre deberia  morir al chocar
+                        kamikaze.recibirHit(1, 0); // Llama a la interfaz
+
+                        // 3. La nave solo recibe daño si no estaba herida
+                        //    (checkCollision ya tiene el 'if(!herido)' adentro)
+                        nave.checkCollision(kamikaze.getArea());
                     }
                 }
             }
 
+
             //  Asteroide vs Asteroide, para ver si rebotan entre si.
             for (int i = 0; i < balls1.size(); i++) {
                 Ball2 ball1 = balls1.get(i);
-                if (ball1.isDestroyed()) continue;
+                if (ball1.estaDestruido()) continue;
                 for (int j = i + 1; j < balls1.size(); j++) {
                     Ball2 ball2 = balls1.get(j);
-                    if (!ball2.isDestroyed()) {
+                    if (!ball2.estaDestruido()) {
                         ball1.checkCollision(ball2);
                     }
                 }
@@ -243,7 +251,7 @@ public class PantallaJuego implements Screen {
         batch.end();
         // Limpia balas
         for (int i = 0; i < balas.size(); i++) {
-            if (balas.get(i).isDestroyed()) {
+            if (balas.get(i).estaDestruido()) {
                 balas.remove(i);
                 i--;
             }
@@ -252,7 +260,7 @@ public class PantallaJuego implements Screen {
         // Limpia asteroides
         ArrayList<Ball2> asteroidesARemover = new ArrayList<>();
         for (Ball2 ball : balls1) {
-            if (ball.isDestroyed()) {
+            if (ball.estaDestruido()) {
                 asteroidesARemover.add(ball);
             }
         }
@@ -260,10 +268,11 @@ public class PantallaJuego implements Screen {
         balls2.removeAll(asteroidesARemover); // Limpia ambas listas
 
 
-        kamikazes.removeIf(EntidadJuego::isDestroyed);
+        kamikazes.removeIf(EntidadJuego::estaDestruido);
         // ------------------------------------
 
         // --- 6. LÓGICA DE FIN DE JUEGO / SIGUIENTE NIVEL ---
+
         if (nave.estaDestruido()) {
             if (score > game.getHighScore()) game.setHighScore(score);
             Screen ss = new PantallaGameOver(game);

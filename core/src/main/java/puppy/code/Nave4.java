@@ -73,7 +73,7 @@ public class Nave4 extends GameObject implements IDestruible {
 
     @Override
     public boolean estaDestruido() {
-        return !herido && destruida;
+        return  destruida;
     }
 
     @Override
@@ -303,6 +303,9 @@ public class Nave4 extends GameObject implements IDestruible {
 
 
     //public boolean isDestruida() {return destruida;}
+    public Rectangle getHitbox() {
+        return spr.getBoundingRectangle();
+    }
     public int getX() {return (int) spr.getX();}
     public int getY() {return (int) spr.getY();}
     public float getMaxCombustible() { return this.MAX_COMBUSTIBLE; }

@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 
-public class Bullet {
+public class Bullet implements IDestruible {
 
 	private int xSpeed;
 	private int ySpeed;
@@ -53,19 +53,28 @@ public class Bullet {
             }
             return false;
         }
+        @Override
+	    public boolean estaDestruido() {return this.destroyed;}
 
-	    public boolean isDestroyed() {return destroyed;}
-
-        public void destruir() {
+        @Override
+        public void recibirHit(int cantidad, float delta) {
             this.destroyed = true;
         }
+
+        @Override
+        public int getVidas() {
+            // Operador ternario: (condición ? si_es_verdad : si_es_falso)
+            return this.destroyed ? 0 : 1;
+        }
+
 
         public float getX() {
         return spr.getX();
     }
 
 
-    public float getY() {
+
+        public float getY() {
         return spr.getY();
     }
 }

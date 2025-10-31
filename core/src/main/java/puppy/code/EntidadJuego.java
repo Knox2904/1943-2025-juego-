@@ -8,7 +8,7 @@ import com.badlogic.gdx.math.Rectangle;
 // Esta es nuestra Súperclase (o Clase Padre)
 // Es 'abstract' porque no queremos crear una 'EntidadJuego' genérica,
 // solo subclases específicas (Asteroide, Kamikaze, etc).
-public abstract class EntidadJuego {
+public abstract class EntidadJuego implements IDestruible {
 
     // Usamos 'protected' para que las subclases (como EnemigoKamikaze)
     // puedan acceder a ellas directamente
@@ -17,14 +17,16 @@ public abstract class EntidadJuego {
     protected Sprite spr;
     protected boolean destroyed = false;
     protected float velocidadPEI;
+    protected int vidaActual;
 
     // Constructor base
-    public EntidadJuego(Texture tx, float x, float y, float velocidad) {
+    public EntidadJuego(Texture tx, float x, float y, float velocidad, int vidaI) {
         this.x = x;
         this.y = y;
         this.spr = new Sprite(tx);
         this.velocidadPEI = velocidad;
         this.spr.setPosition(x, y);
+        this.vidaActual = vidaI;
     }
 
     // Método abstracto. Obliga a todas las subclases a implementar
@@ -41,12 +43,30 @@ public abstract class EntidadJuego {
 
     }
 
-     //logica para un enemigo siguiente, todavia no se prueba
-    public boolean isDestroyed() {
-        return destroyed;
+    @Override
+    public void recibirHit(int cantidad, float delta){
+        if(estaDestruido())return; //si ya esta muerto no se golpea de nuevo.
+
+        this.vidaActual -= cantidad;
+        if(this.vidaActual <= 0){
+            this.vidaActual = 0;
+            this.destruir();
+        }
     }
 
-    public void destruir() {
+    @Override
+    public boolean estaDestruido() {
+        return this.destroyed;
+    }
+
+    @Override
+    public int getVidas(){
+        return this.vidaActual;
+    }
+
+
+    public void destruir(){
+        this.vidaActual = 0;
         this.destroyed = true;
     }
 
