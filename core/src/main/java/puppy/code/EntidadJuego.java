@@ -16,12 +16,14 @@ public abstract class EntidadJuego {
     protected float x, y;
     protected Sprite spr;
     protected boolean destroyed = false;
+    protected float velocidadPEI;
 
     // Constructor base
-    public EntidadJuego(Texture tx, float x, float y) {
+    public EntidadJuego(Texture tx, float x, float y, float velocidad) {
         this.x = x;
         this.y = y;
         this.spr = new Sprite(tx);
+        this.velocidadPEI = velocidad;
         this.spr.setPosition(x, y);
     }
 
@@ -38,9 +40,8 @@ public abstract class EntidadJuego {
         return spr.getBoundingRectangle();
 
     }
-}
 
-    /* logica para un enemigo siguiente, todavia no se prueba
+     //logica para un enemigo siguiente, todavia no se prueba
     public boolean isDestroyed() {
         return destroyed;
     }
@@ -58,4 +59,4 @@ public abstract class EntidadJuego {
         return y;
     }
 }
-*/
+

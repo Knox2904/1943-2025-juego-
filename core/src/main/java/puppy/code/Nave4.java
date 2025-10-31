@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 
 import java.util.ArrayList;
 
@@ -237,17 +238,15 @@ public class Nave4 extends GameObject implements IDestruible {
         }
     }
 
-    public boolean checkCollision(Ball2 b) {
-        if(!herido && b.getArea().overlaps(spr.getBoundingRectangle())){
-
-        	//actualizar vidas y herir
-
+    public boolean checkCollision(Rectangle areaEnemiga) {
+        if(!herido && areaEnemiga.overlaps(spr.getBoundingRectangle())){
+            //actualizar vidas y herir
             combustible -= GOLPE_COMBUSTIBLE;
             herido = true;
-  		    tiempoHerido=tiempoHeridoMax;
-  		    sonidoHerido.play();
+            tiempoHerido=tiempoHeridoMax;
+            sonidoHerido.play();
             if (combustible<=0)
-          	    destruida = true;
+                destruida = true;
             return true;
         }
         return false;

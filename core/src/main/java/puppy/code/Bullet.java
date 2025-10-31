@@ -12,7 +12,7 @@ public class Bullet {
 	private int ySpeed;
 	private boolean destroyed = false;
 	private Sprite spr;
-	    
+
 	    public Bullet(float x, float y, int xSpeed, int ySpeed, Texture tx) {
 	    	spr = new Sprite(tx);
 	    	spr.setPosition(x, y);
@@ -27,23 +27,45 @@ public class Bullet {
 	        if (spr.getY() < 0 || spr.getY()+spr.getHeight() > Gdx.graphics.getHeight()) {
 	        	destroyed = true;
 	        }
-	        
+
 	    }
-	    
+
 	    public void draw(SpriteBatch batch) {
 	    	spr.draw(batch);
 	    }
-	    
+
 	    public boolean checkCollision(Ball2 b2) {
 	        if(spr.getBoundingRectangle().overlaps(b2.getArea())){
 	        	// Se destruyen ambos
 	            this.destroyed = true;
 	            return true;
-	
+
 	        }
 	        return false;
 	    }
-	    
+
+
+        public boolean checkCollision(Kamikaze k) {
+            if(spr.getBoundingRectangle().overlaps(k.getArea())){
+                // Se destruyen ambos
+                this.destroyed = true;
+                return true;
+            }
+            return false;
+        }
+
 	    public boolean isDestroyed() {return destroyed;}
-	
+
+        public void destruir() {
+            this.destroyed = true;
+        }
+
+        public float getX() {
+        return spr.getX();
+    }
+
+
+    public float getY() {
+        return spr.getY();
+    }
 }
