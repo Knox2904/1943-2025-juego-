@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.MathUtils;
 
 
 public class PantallaJuego implements Screen {
@@ -37,6 +38,12 @@ public class PantallaJuego implements Screen {
     private float scrollSpeed = 100f; // Velocidad de scroll
     private float backgroundOffsetY = 0; // Posicion Y del fondo
 
+    // --- (MERGE) --- Variables añadidas del compañero
+    private ArrayList<Kamikaze> kamikazes = new ArrayList<>();
+    private Texture txEnemigo; // Textura para el kamikaze
+    private float spawnTimerEnemigo = 2f; // Timer para el kamikaze (5 segundos)
+
+    private Texture txAsteroide;
 
 	public PantallaJuego(SpaceNavigation game, int ronda, float combustible, int score,
 			int velXAsteroides, int velYAsteroides, int cantAsteroides) {
@@ -49,11 +56,11 @@ public class PantallaJuego implements Screen {
 
 		batch = game.getBatch();
 		camera = new OrthographicCamera();
-		camera.setToOrtho(false, 800, 640);
+		camera.setToOrtho(false, 480, 640);
 		//inicializar assets; musica de fondo y efectos de sonido
 		explosionSound = Gdx.audio.newSound(Gdx.files.internal("explosion.ogg"));
 		explosionSound.setVolume(1,0.25f);
-		gameMusic = Gdx.audio.newMusic(Gdx.files.internal("piano-loops.wav")); //
+		gameMusic = Gdx.audio.newMusic(Gdx.files.internal("piano-loops.wav"));
 
 		gameMusic.setLooping(true);
 		gameMusic.setVolume(0.5f);
@@ -62,6 +69,8 @@ public class PantallaJuego implements Screen {
         powerUpTexture = new Texture(Gdx.files.internal("powerUpDobleTiro.png"));
         texturaAliado = new Texture(Gdx.files.internal("MainShip3.png"));
         backgroundTexture = new Texture(Gdx.files.internal("fondoJuegoJava.jpg"));
+        txEnemigo = new Texture(Gdx.files.internal("MainShip3.png"));
+        txAsteroide = new Texture(Gdx.files.internal("aGreyMedium4.png"));
 
 	    // cargar imagen de la nave, 64x64
 	    nave = new Nave4((float)Gdx.graphics.getWidth()/2-50,30f,
@@ -74,16 +83,17 @@ public class PantallaJuego implements Screen {
 
         //crear asteroides
         Random r = new Random();
-	    for (int i = 0; i < cantAsteroides; i++) {
-	        Ball2 bb = new Ball2(
+        for (int i = 0; i < cantAsteroides; i++) {
+
+            Ball2 bb = new Ball2(
                 (float) r.nextInt((int)Gdx.graphics.getWidth()),
                 (float) (50+r.nextInt((int)Gdx.graphics.getHeight()-50)),
                 20+r.nextInt(10),
-                (float)velXAsteroides+r.nextInt(4),
+                (float)velXAsteroides+r.nextInt(150),
                 new Texture(Gdx.files.internal("aGreyMedium4.png")));
-	  	    balls1.add(bb);
-	  	    balls2.add(bb);
-	  	}
+            balls1.add(bb);
+            balls2.add(bb);
+        }
 	}
 
 	public void dibujaEncabezado() {
@@ -95,133 +105,215 @@ public class PantallaJuego implements Screen {
 	}
 
 
+
     @Override
-	public void render(float delta) {
+    public void render(float delta) {
 
-
+        // --- 1. LÓGICA DE ACTUALIZACIÓN ---
         nave.update(delta, this);
 
-
-
-
-        // Mueve el fondo hacia abajo
-        backgroundOffsetY -= scrollSpeed * delta;
-
-        if (backgroundOffsetY <= -Gdx.graphics.getHeight()) {
-            backgroundOffsetY = 0;
-        }
-
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        batch.begin();
-
-        batch.draw(backgroundTexture, 0, backgroundOffsetY, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-
-        batch.draw(backgroundTexture, 0, backgroundOffsetY + Gdx.graphics.getHeight(), Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-
-
-
-		  dibujaEncabezado();
-	      if (!nave.estaHerido()) {
-		      // colisiones entre balas y asteroides y su destruccion
-	    	  for (int i = 0; i < balas.size(); i++) {
-		            Bullet b = balas.get(i);
-		            b.update();
-		            for (int j = 0; j < balls1.size(); j++) {
-		              if (b.checkCollision(balls1.get(j))) {
-		            	 explosionSound.play();
-		            	 balls1.remove(j);
-		            	 balls2.remove(j);
-		            	 j--;
-		            	 score +=10;
-		              }
-		  	        }
-
-		         //   b.draw(batch);
-		            if (b.estaDestruido()) {
-		                balas.remove(b);
-		                i--; //para no saltarse 1 tras eliminar del arraylist
-		            }
-		      }
-		      //actualizar movimiento de asteroides dentro del area
-		      for (Ball2 ball : balls1) {
-		          ball.update(delta , this );
-		      }
-		      //colisiones entre asteroides y sus rebotes
-		      for (int i=0;i<balls1.size();i++) {
-		    	Ball2 ball1 = balls1.get(i);
-		        for (int j=0;j<balls2.size();j++) {
-		          Ball2 ball2 = balls2.get(j);
-		          if (i<j) {
-		        	  ball1.checkCollision(ball2);
-
-		          }
-		        }
-		      }
-	      }
-	      //dibujar balas
-	     for (Bullet b : balas) {
-	          b.draw(batch);
-	      }
-	      nave.draw(batch);
-
-	      //dibujar asteroides y manejar colision con nave
-	      for (int i = 0; i < balls1.size(); i++) {
-	    	    Ball2 b=balls1.get(i);
-	    	    b.draw(batch);
-		          //perdió vida o game over
-	              if (nave.checkCollision(b , delta)) {
-		            //asteroide se destruye con el choque
-	            	 balls1.remove(i);
-	            	 balls2.remove(i);
-	            	 i--;
-              }
-  	        }
-
-	      if (nave.estaDestruido()) {
-  			if (score > game.getHighScore())
-  				game.setHighScore(score);
-	    	Screen ss = new PantallaGameOver(game);
-  			ss.resize(1200, 800);
-  			game.setScreen(ss);
-  			dispose();
-  		  }
-
-        for (int i = 0; i < powerUps.size(); i++) {
-            PowerUp p = powerUps.get(i);
-            p.update(delta, this); // mueve el power-up
-            p.draw(batch);         // dibuja el power-up
-
-            // --- colision ---
-            if (p.getHitbox().overlaps(nave.getHitbox())) {
-
-
-                aplicarEfectoPowerUp(p.getTipo());
-
-                // Destruir el power-up
-                powerUps.remove(i);
-                i--;
+        // Mueve balas y comprueba si salieron de pantalla
+        for (int i = 0; i < balas.size(); i++) {
+            Bullet b = balas.get(i);
+            b.update(); // (Bullet no usa 'delta' en tu versión)
+            if (b.getX() < -10 || b.getX() > Gdx.graphics.getWidth() + 10 ||
+                b.getY() < -10 || b.getY() > Gdx.graphics.getHeight() + 10) {
+                b.recibirHit(1,0);
             }
         }
 
+        // Mueve asteroides
+        for (Ball2 ball : balls1) {
+            ball.update(delta , this);
+        }
+
+        // Mueve Power-ups
+        for (PowerUp p : powerUps) {
+            p.update(delta, this);
+        }
+
+        // --- (MERGE) --- Mueve Kamikazes
+        for (Kamikaze k : kamikazes) {
+            k.update(delta , this);
+        }
 
 
+        // --- (MERGE) --- Spawner de Kamikazes (Ejemplo simple)
+        spawnTimerEnemigo -= delta;
+        if (spawnTimerEnemigo <= 0) {
+
+            // 1. Resetea el timer para el *próximo* enemigo
+            spawnTimerEnemigo = MathUtils.random(0f, 1f); // Genera un enemigo cada 1-3 segundos
+
+            // 2. Prepara las variables de spawn
+            Random r = new Random();
+            float spawnX = (float) r.nextInt(Gdx.graphics.getWidth());
+            float spawnY = (float) Gdx.graphics.getHeight() + 50; // Arriba de la pantalla
+
+            // 3. DECIDE QUÉ ENEMIGO CREAR (Tu "array" de opciones)
+            //    Usamos un 'if' para 50/50 de probabilidad.
+
+            if (MathUtils.randomBoolean()) {
+                // --- Opción A: Crear un Kamikaze ---
+                kamikazes.add(new Kamikaze(
+                    spawnX,
+                    spawnY,
+                    nave,
+                    txEnemigo, // <-- Usa la textura pre-cargada
+                    MathUtils.random(250f,500f)
+                ));
+            } else {
+                // --- Opción B: Crear un Asteroide ---
+                Ball2 bb = new Ball2(
+                    spawnX,
+                    spawnY,
+                    20 + r.nextInt(10),
+                    (float)velXAsteroides + r.nextInt((int)MathUtils.random(500f, 10000f)),
+                    txAsteroide // <-- Usa la textura pre-cargada
+                );
+                balls1.add(bb);
+                balls2.add(bb); // No olvides añadirlo a ambas listas
+            }
+        }
+
+        // --- 2. DIBUJADO Y COLISIONES ---
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        batch.begin();
+
+        // Dibuja el fondo primero
+        backgroundOffsetY -= scrollSpeed * delta;
+        if (backgroundOffsetY <= -Gdx.graphics.getHeight()) {
+            backgroundOffsetY = 0;
+        }
+        batch.draw(backgroundTexture, 0, backgroundOffsetY, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        batch.draw(backgroundTexture, 0, backgroundOffsetY + Gdx.graphics.getHeight(), Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+        // Dibuja el HUD
+        dibujaEncabezado();
+
+        if (!nave.estaHerido()) {
+
+            // --- Colisiones de Balas ---
+            for (int i = 0; i < balas.size(); i++) {
+                Bullet b = balas.get(i);
+                if (b.estaDestruido()) continue;
+
+                // Bala vs Asteroide
+                for (Ball2 asteroide : balls1) {
+                    if (!asteroide.estaDestruido() && b.checkCollision(asteroide)) {
+                        explosionSound.play();
+                        asteroide.recibirHit(1, delta);
+                        b.recibirHit(1, delta);
+                        agregarScore(10);
+                        break; // La bala choca solo una vez
+                    }
+                }
+                if (b.estaDestruido()) continue;
+
+                // --- (MERGE) --- Bala vs Kamikaze
+                for (Kamikaze kamikaze : kamikazes) {
+                    if (!kamikaze.estaDestruido() && b.checkCollision(kamikaze)) {
+                        explosionSound.play();
+                        kamikaze.recibirHit(1, delta);
+                        b.recibirHit(1, delta);
+                        agregarScore(25);
+                        break;
+                    }
+                }
+            }
+
+            // --- Colisiones de Nave ---
+
+            // Nave vs Asteroide
+            for (Ball2 asteroide : balls1) {
+                if (!asteroide.estaDestruido()) {
+                    // --- (MERGE) --- CORREGIDO: Usando el checkCollision correcto
+                    if (nave.checkCollision(asteroide, delta)) {
+                        asteroide.recibirHit(1, delta);
+                    }
+                }
+            }
+
+            // --- (MERGE) --- Nave vs Kamikaze
+            for (Kamikaze kamikaze : kamikazes) {
+                if (!kamikaze.estaDestruido()) {
+                    if (nave.checkCollision(kamikaze, delta)) {
+                        kamikaze.recibirHit(10, delta); // El kamikaze muere al chocar
+                    }
+                }
+            }
+
+            // Asteroide vs Asteroide
+            for (int i = 0; i < balls1.size(); i++) {
+                Ball2 ball1 = balls1.get(i);
+                if (ball1.estaDestruido()) continue;
+                for (int j = i + 1; j < balls1.size(); j++) {
+                    Ball2 ball2 = balls1.get(j);
+                    if (!ball2.estaDestruido()) {
+                        ball1.checkCollision(ball2); // (Este método es de Ball2)
+                    }
+                }
+            }
+
+            // Nave vs PowerUps
+            for (int i = 0; i < powerUps.size(); i++) {
+                PowerUp p = powerUps.get(i);
+                if (p.getHitbox().overlaps(nave.getHitbox())) {
+                    aplicarEfectoPowerUp(p.getTipo());
+                    powerUps.remove(i);
+                    i--;
+                }
+            }
+        } // Fin de 'if (!nave.estaHerido())'
+
+        // --- 3. DIBUJADO FINAL ---
+        // Dibuja todo (los que estén destruidos no se dibujarán si lo manejas en su 'draw')
+
+        for (Bullet b : balas) { b.draw(batch); }
+        for (Ball2 ball : balls1) { ball.draw(batch); }
+        for (Kamikaze k : kamikazes) { k.draw(batch); }
+        for (PowerUp p : powerUps) { p.draw(batch); }
+
+        nave.draw(batch); // Dibuja la nave al final (encima de todo)
+
+        batch.end();
+
+        // --- 4. LIMPIEZA DE OBJETOS MUERTOS ---
+        balas.removeIf(Bullet::estaDestruido);
+
+        ArrayList<Ball2> asteroidesARemover = new ArrayList<>();
+        for (Ball2 ball : balls1) {
+            if (ball.estaDestruido()) {
+                asteroidesARemover.add(ball);
+            }
+        }
+        balls1.removeAll(asteroidesARemover);
+        balls2.removeAll(asteroidesARemover);
+
+        // --- (MERGE) ---
+        kamikazes.removeIf(Kamikaze::estaDestruido);
+
+        // --- 5. FIN DE JUEGO / SIGUIENTE NIVEL ---
+
+        if (nave.estaDestruido()) {
+            if (score > game.getHighScore()) game.setHighScore(score);
+            Screen ss = new PantallaGameOver(game);
+            ss.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+            game.setScreen(ss);
+            dispose();
+            return;
+        }
 
 
+        if (balls1.isEmpty() && kamikazes.isEmpty()) {
+            Screen ss = new PantallaJuego(game, ronda + 1, (int)nave.getCombustible(), score,
+                velXAsteroides + 2, velYAsteroides + 2, cantAsteroides + 10);
+            ss.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+            game.setScreen(ss);
+            dispose();
+        }
+    }
 
-
-
-
-	      batch.end();
-	      //nivel completado
-	      if (balls1.size()==0) {
-			Screen ss = new PantallaJuego(game,ronda+1,(int)nave.getCombustible(), score,
-					velXAsteroides+3, velYAsteroides+3, cantAsteroides+10);
-			ss.resize(1200, 800);
-			game.setScreen(ss);
-			dispose();
-		  }
-
-	}
 
     public boolean agregarBala(Bullet bb) {
     	return balas.add(bb);
@@ -288,6 +380,20 @@ public class PantallaJuego implements Screen {
 
     public void agregarScore(int puntos){
         score+=puntos;
+        if (this.score >= proximaMejora) {
+            proximaMejora += 1000;
+            mostrarPantallaMejoras();
+        }
+    }
+
+    private int proximaMejora = 1000;
+
+    /**
+     * Pausa el juego actual y muestra la pantalla de selección de mejoras.
+     */
+    public void mostrarPantallaMejoras() {
+
+        game.setScreen(new UpgradeScreen(game, this));
     }
 
 }
