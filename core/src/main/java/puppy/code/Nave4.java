@@ -34,6 +34,8 @@ public class Nave4 extends GameObject implements IDestruible {
     private final int MAX_NIVEL_ARMA = 2; // El nivel máximo que queremos (0, 1, 2 ... n) , n = 2 por ahora , testar
     private IFireStrategy fireStrategy;
     private ArrayList<SideShip> aliados = new ArrayList<>();
+    private float fireRateBase = 0.2f; // Disparar cada 0.2 segundos (5 balas/seg)
+    private float fireTimer = 0f;
 
 
     public Nave4(float x, float y, Texture tx, Sound soundChoque, Texture txBala, Sound soundBala , Texture txAliado) {
@@ -55,7 +57,7 @@ public class Nave4 extends GameObject implements IDestruible {
     @Override
     public void recibirHit(int cantidad , float delta) {
         if (!herido) {
-            combustible -= CONSUMO_POR_SEGUNDO * delta;
+            combustible -= cantidad;
             herido = true;
             tiempoHerido = tiempoHeridoMax;
             sonidoHerido.play();
@@ -88,6 +90,7 @@ public class Nave4 extends GameObject implements IDestruible {
     public void update(float delta, PantallaJuego juego){
 
         stateTime += delta;
+        fireTimer -= delta;
 
 
         //--------------movimiento-----------------
@@ -95,7 +98,8 @@ public class Nave4 extends GameObject implements IDestruible {
         if(!herido){
 
             combustible -= CONSUMO_POR_SEGUNDO * delta;
-            final float PLAYER_SPEED = 500f ; // testear para ver la velocidad
+            float speedMod = BuffManager.getInstance().getPlayerSpeedModifier();
+            final float PLAYER_SPEED = 500f * speedMod; // testear para ver la velocidad
 
 
             float x = spr.getX();
@@ -180,13 +184,38 @@ public class Nave4 extends GameObject implements IDestruible {
         }
 
             //------------- disparos ------------
-
-        if(Gdx.input.isKeyJustPressed(Input.Keys.SPACE)){
+        /*
+        if(Gdx.input.isKeyPressed(Input.Keys.SPACE)){
             float spawnX = spr.getX() + spr.getWidth() / 2 - 5;
             float spawnY = spr.getY() + spr.getHeight() - 5;
 
             fireStrategy.fire(juego, txBala, spawnX, spawnY);
             soundBala.play();
+        }
+
+
+         */
+
+        if(Gdx.input.isKeyPressed(Input.Keys.SPACE)){
+
+
+            if (fireTimer <= 0f) {
+
+
+                float spawnX = spr.getX() + spr.getWidth() / 2 - 5;
+                float spawnY = spr.getY() + spr.getHeight() - 5;
+
+                fireStrategy.fire(juego, txBala, spawnX, spawnY);
+                soundBala.play();
+
+                float fireRateMod = BuffManager.getInstance().getFireRateModifier();
+
+                // Calcula la nueva cadencia
+                // (Dividimos, porque más modificador = menos tiempo de espera)
+                float fireRateActual = fireRateBase / fireRateMod;
+
+                fireTimer = fireRateActual;
+            }
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
@@ -202,6 +231,12 @@ public class Nave4 extends GameObject implements IDestruible {
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_9)) {
             System.out.println("CHEAT: Generando PowerUp NAVE ALIADA!");
             juego.crearPowerUpEn(position.x, position.y + 100, TipoPowerUp.NAVE_ALIADA);
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.L)) {
+            System.out.println("CHEAT: Abriendo pantalla de mejoras");
+            // Llama a un nuevo método en PantallaJuego
+            juego.mostrarPantallaMejoras();
         }
 
 
@@ -241,7 +276,7 @@ public class Nave4 extends GameObject implements IDestruible {
     public boolean checkCollision(GameObject other , float delta) {
         if(!herido && this.getHitbox().overlaps(other.getHitbox())){
 
-            this.recibirHit(1 , delta);
+            this.recibirHit(20 , delta);
 
             return true;
         }

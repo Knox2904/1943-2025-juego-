@@ -28,6 +28,7 @@ public class Bullet implements IDestruible {
 	        	destroyed = true;
 	        }
 
+
 	    }
 
 	    public void draw(SpriteBatch batch) {
@@ -77,4 +78,6 @@ public class Bullet implements IDestruible {
         public float getY() {
         return spr.getY();
     }
+
+
 }
