@@ -38,7 +38,7 @@ public class Kamikaze extends EntidadJuego {
      * @param delta El tiempo desde el último frame.
      */
     @Override
-    public void update(float delta) {
+    public void update(float delta , PantallaJuego juego) {
 
         //posicion actual del objetivo.
         float targetX = objetivo.getX();
@@ -46,8 +46,8 @@ public class Kamikaze extends EntidadJuego {
 
         // 2. Calcula el vector director (la dirección hacia el objetivo)
         //    (Usa 'this.x' y 'this.y' para la posición actual del enemigo)
-        float deltaX = targetX - this.x;
-        float deltaY = targetY - this.y;
+        float deltaX = targetX - this.position.x;
+        float deltaY = targetY - this.position.y;
 
         // 3. Calcula la distancia
         float distancia = (float) Math.sqrt(deltaX * deltaX + deltaY * deltaY);
@@ -63,10 +63,10 @@ public class Kamikaze extends EntidadJuego {
         }
 
         // 5. Mueve la entidad usando las velocidades RECIEN CALCULADAS
-        x += xSpeed * delta;
-        y += ySpeed * delta;
+        position.x += xSpeed * delta;
+        position.y += ySpeed * delta;
 
-        spr.setPosition(x, y);
+        spr.setPosition(position.x, position.y);
 
         // 6.  Rota el sprite para que "mire" al jugador
         float angulo = MathUtils.atan2(deltaY, deltaX) * MathUtils.radiansToDegrees;
@@ -74,8 +74,8 @@ public class Kamikaze extends EntidadJuego {
 
         // 7. Comprueba si se salio de la pantalla para destruirse
         float margen = 50f; // Un margen para que desaparezca fuera de vista
-        if (x + spr.getWidth() < -margen || x > Gdx.graphics.getWidth() + margen ||
-            y + spr.getHeight() < -margen || y > Gdx.graphics.getHeight() + margen) {
+        if (position.x + spr.getWidth() < -margen || position.x > Gdx.graphics.getWidth() + margen ||
+            position.y + spr.getHeight() < -margen || position.y > Gdx.graphics.getHeight() + margen) {
 
             // Usa 'destroyed' (heredado de EntidadJuego)
             this.destroyed = true;

@@ -1,51 +1,39 @@
 package puppy.code;
 
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch; // Necesario si draw() se quedara
 import com.badlogic.gdx.math.Rectangle;
 
-// Esta es nuestra Súperclase (o Clase Padre)
-// Es 'abstract' porque no queremos crear una 'EntidadJuego' genérica,
-// solo subclases específicas (Asteroide, Kamikaze, etc).
-public abstract class EntidadJuego implements IDestruible {
+// EntidadJuego hereda TODO de GameObject (spr, position, hitbox, draw)
+public abstract class EntidadJuego extends GameObject implements IDestruible {
 
-    // Usamos 'protected' para que las subclases (como EnemigoKamikaze)
-    // puedan acceder a ellas directamente
-    // Esto es parte de la Encapsulación
-    protected float x, y;
-    protected Sprite spr;
+    // --- VARIABLES ELIMINADAS ---
+    // protected float x, y; // <-- BORRADO (Ya existe 'position' en GameObject)
+    // protected Sprite spr; // <-- BORRADO (¡Esta era la causa del crash!)
+
+    // --- VARIABLES PROPIAS DE ENTIDADJUEGO ---
     protected boolean destroyed = false;
     protected float velocidadPEI;
     protected int vidaActual;
 
     // Constructor base
     public EntidadJuego(Texture tx, float x, float y, float velocidad, int vidaI) {
-        this.x = x;
-        this.y = y;
-        this.spr = new Sprite(tx);
+        // 1. Llama al padre. Esto crea 'position', 'spr' y 'hitbox'
+        //    y también llama a spr.setPosition(x,y)
+        super(x, y, tx);
+
+
         this.velocidadPEI = velocidad;
-        this.spr.setPosition(x, y);
         this.vidaActual = vidaI;
-    }
-
-    // Método abstracto. Obliga a todas las subclases a implementar
-    // su propia lógica de 'update'
-    public abstract void update(float delta);
-
-    // Métodos comunes que todas las entidades tendrán
-    public void draw(SpriteBatch batch) {
-        spr.draw(batch);
-    }
-
-    public Rectangle getArea() {
-        return spr.getBoundingRectangle();
 
     }
+
+
+    // --- MÉTODOS DE LA INTERFAZ  ---
 
     @Override
     public void recibirHit(int cantidad, float delta){
-        if(estaDestruido())return; //si ya esta muerto no se golpea de nuevo.
+        if(estaDestruido())return;
 
         this.vidaActual -= cantidad;
         if(this.vidaActual <= 0){
@@ -64,19 +52,18 @@ public abstract class EntidadJuego implements IDestruible {
         return this.vidaActual;
     }
 
-
     public void destruir(){
         this.vidaActual = 0;
         this.destroyed = true;
     }
 
-    // Getters para la posición
+    // --- GETTERS (Modificados para usar 'position' del padre) ---
+
     public float getX() {
-        return x;
+        return this.position.x;
     }
 
     public float getY() {
-        return y;
+        return this.position.y;
     }
 }
-

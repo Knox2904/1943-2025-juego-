@@ -35,7 +35,7 @@ public class Bullet implements IDestruible {
 	    }
 
 	    public boolean checkCollision(Ball2 b2) {
-	        if(spr.getBoundingRectangle().overlaps(b2.getArea())){
+	        if(spr.getBoundingRectangle().overlaps(b2.getHitbox())){
 	        	// Se destruyen ambos
 	            this.destroyed = true;
 	            return true;
@@ -46,7 +46,7 @@ public class Bullet implements IDestruible {
 
 
         public boolean checkCollision(Kamikaze k) {
-            if(spr.getBoundingRectangle().overlaps(k.getArea())){
+            if(spr.getBoundingRectangle().overlaps(k.getHitbox())){
                 // Se destruyen ambos
                 this.destroyed = true;
                 return true;

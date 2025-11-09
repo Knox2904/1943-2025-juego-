@@ -238,15 +238,11 @@ public class Nave4 extends GameObject implements IDestruible {
         }
     }
 
-    public boolean checkCollision(Rectangle areaEnemiga) {
-        if(!herido && areaEnemiga.overlaps(spr.getBoundingRectangle())){
-            //actualizar vidas y herir
-            combustible -= GOLPE_COMBUSTIBLE;
-            herido = true;
-            tiempoHerido=tiempoHeridoMax;
-            sonidoHerido.play();
-            if (combustible<=0)
-                destruida = true;
+    public boolean checkCollision(GameObject other , float delta) {
+        if(!herido && this.getHitbox().overlaps(other.getHitbox())){
+
+            this.recibirHit(1 , delta);
+
             return true;
         }
         return false;
@@ -286,7 +282,7 @@ public class Nave4 extends GameObject implements IDestruible {
     public void agregarAliado() {
         if (aliados.size() < 2) {
 
-            float offsetX = (aliados.size() == 0) ? -60f : 60f;
+            float offsetX = (aliados.isEmpty()) ? -60f : 60f;
 
             SideShip nuevoAliado = new SideShip(
                 position.x,       // X actual de la nave
