@@ -14,6 +14,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 
 
+
 public class PantallaJuego implements Screen {
 
 	private SpaceNavigation game;
@@ -37,6 +38,7 @@ public class PantallaJuego implements Screen {
     private Texture backgroundTexture;
     private float scrollSpeed = 100f; // Velocidad de scroll
     private float backgroundOffsetY = 0; // Posicion Y del fondo
+    private Texture txBarra;
 
     // --- (MERGE) --- Variables añadidas del compañero
     private ArrayList<Kamikaze> kamikazes = new ArrayList<>();
@@ -72,6 +74,13 @@ public class PantallaJuego implements Screen {
         txEnemigo = new Texture(Gdx.files.internal("MainShip3.png"));
         txAsteroide = new Texture(Gdx.files.internal("aGreyMedium4.png"));
 
+        // Creamos un Pixmap de 1x1 píxel blanco puro
+        com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(1, 1, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
+        pixmap.setColor(com.badlogic.gdx.graphics.Color.WHITE);
+        pixmap.fill();
+        txBarra = new Texture(pixmap);
+        pixmap.dispose();
+
 	    // cargar imagen de la nave, 64x64
 	    nave = new Nave4((float)Gdx.graphics.getWidth()/2-50,30f,
                         new Texture(Gdx.files.internal("MainShip3.png")),
@@ -96,13 +105,43 @@ public class PantallaJuego implements Screen {
         }
 	}
 
-	public void dibujaEncabezado() {
-        String fuelTexto = "FUEL: " + (int)nave.getCombustible();
-        game.getFont().draw(batch, fuelTexto, 10, 30);
-		game.getFont().getData().setScale(2f);
-		game.getFont().draw(batch, "Score:"+this.score, Gdx.graphics.getWidth()-150, 30);
-		game.getFont().draw(batch, "HighScore:"+game.getHighScore(), Gdx.graphics.getWidth()/2-100, 30);
-	}
+    public void dibujaEncabezado() {
+
+        float anchoBarraTotal = 200f;
+        float altoBarra = 20f;
+        float margenX = 10f;
+        float margenY = Gdx.graphics.getHeight() - 40f; // Arriba a la izquierda
+
+
+        batch.setColor(0.2f, 0.2f, 0.2f, 1f); // Gris oscuro
+        batch.draw(txBarra, margenX, margenY, anchoBarraTotal, altoBarra);
+
+        float porcentaje = nave.getCombustible() / nave.getMaxCombustible();
+        float anchoActual = anchoBarraTotal * porcentaje;
+
+
+        if (porcentaje > 0.6f) {
+            batch.setColor(0f, 1f, 0f, 1f); // Verde
+        } else if (porcentaje > 0.2f) {
+            batch.setColor(1f, 1f, 0f, 1f); // Amarillo
+        } else {
+            batch.setColor(1f, 0f, 0f, 1f); // Rojo (Peligro)
+        }
+
+        batch.draw(txBarra, margenX, margenY, anchoActual, altoBarra);
+
+
+        batch.setColor(1f, 1f, 1f, 1f);
+
+
+        game.getFont().getData().setScale(1.2f); // Un poco más pequeño para que quepa
+        game.getFont().draw(batch, "Score: " + this.score, Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 20);
+        game.getFont().draw(batch, "High: " + game.getHighScore(), Gdx.graphics.getWidth() / 2 - 50, Gdx.graphics.getHeight() - 20);
+
+
+        game.getFont().getData().setScale(1.0f);
+        game.getFont().draw(batch, "FUEL", margenX + 5, margenY + 15);
+    }
 
 
 
@@ -142,8 +181,11 @@ public class PantallaJuego implements Screen {
         spawnTimerEnemigo -= delta;
         if (spawnTimerEnemigo <= 0) {
 
+            float spawnMod = BuffManager.getInstance().getEnemySpawnRateMultiplier();
+            float tiempoBase = MathUtils.random(1f, 3f);
+
             // 1. Resetea el timer para el *próximo* enemigo
-            spawnTimerEnemigo = MathUtils.random(0f, 1f); // Genera un enemigo cada 1-3 segundos
+            spawnTimerEnemigo = tiempoBase / spawnMod;
 
             // 2. Prepara las variables de spawn
             Random r = new Random();
@@ -191,80 +233,87 @@ public class PantallaJuego implements Screen {
         // Dibuja el HUD
         dibujaEncabezado();
 
-        if (!nave.estaHerido()) {
 
-            // --- Colisiones de Balas ---
-            for (int i = 0; i < balas.size(); i++) {
-                Bullet b = balas.get(i);
-                if (b.estaDestruido()) continue;
+        // --- Colisiones de Balas ---
+        for (int i = 0; i < balas.size(); i++) {
+            Bullet b = balas.get(i);
+            if (b.estaDestruido()) continue;
 
-                // Bala vs Asteroide
-                for (Ball2 asteroide : balls1) {
-                    if (!asteroide.estaDestruido() && b.checkCollision(asteroide)) {
-                        explosionSound.play();
-                        asteroide.recibirHit(1, delta);
-                        b.recibirHit(1, delta);
-                        agregarScore(10);
-                        break; // La bala choca solo una vez
-                    }
-                }
-                if (b.estaDestruido()) continue;
-
-                // --- (MERGE) --- Bala vs Kamikaze
-                for (Kamikaze kamikaze : kamikazes) {
-                    if (!kamikaze.estaDestruido() && b.checkCollision(kamikaze)) {
-                        explosionSound.play();
-                        kamikaze.recibirHit(1, delta);
-                        b.recibirHit(1, delta);
-                        agregarScore(25);
-                        break;
-                    }
-                }
-            }
-
-            // --- Colisiones de Nave ---
-
-            // Nave vs Asteroide
+            // Bala vs Asteroide
             for (Ball2 asteroide : balls1) {
-                if (!asteroide.estaDestruido()) {
-                    // --- (MERGE) --- CORREGIDO: Usando el checkCollision correcto
-                    if (nave.checkCollision(asteroide, delta)) {
-                        asteroide.recibirHit(1, delta);
-                    }
+                if (!asteroide.estaDestruido() && b.checkCollision(asteroide)) {
+                    explosionSound.play();
+                    asteroide.recibirHit(1, delta);
+                    b.recibirHit(1, delta);
+                    agregarScore(10);
+                    break; // La bala choca solo una vez
                 }
             }
+            if (b.estaDestruido()) continue;
 
-            // --- (MERGE) --- Nave vs Kamikaze
+            // --- (MERGE) --- Bala vs Kamikaze
             for (Kamikaze kamikaze : kamikazes) {
-                if (!kamikaze.estaDestruido()) {
-                    if (nave.checkCollision(kamikaze, delta)) {
-                        kamikaze.recibirHit(10, delta); // El kamikaze muere al chocar
-                    }
+                if (!kamikaze.estaDestruido() && b.checkCollision(kamikaze)) {
+                    explosionSound.play();
+                    kamikaze.recibirHit(1, delta);
+                    b.recibirHit(1, delta);
+                    agregarScore(25);
+                    break;
                 }
             }
+        }
 
-            // Asteroide vs Asteroide
-            for (int i = 0; i < balls1.size(); i++) {
-                Ball2 ball1 = balls1.get(i);
-                if (ball1.estaDestruido()) continue;
-                for (int j = i + 1; j < balls1.size(); j++) {
-                    Ball2 ball2 = balls1.get(j);
-                    if (!ball2.estaDestruido()) {
-                        ball1.checkCollision(ball2); // (Este método es de Ball2)
-                    }
-                }
-            }
+        // --- Colisiones de Nave ---
 
-            // Nave vs PowerUps
-            for (int i = 0; i < powerUps.size(); i++) {
-                PowerUp p = powerUps.get(i);
-                if (p.getHitbox().overlaps(nave.getHitbox())) {
-                    aplicarEfectoPowerUp(p.getTipo());
-                    powerUps.remove(i);
-                    i--;
+        // Nave vs Asteroide
+        for (Ball2 asteroide : balls1) {
+            if (!asteroide.estaDestruido()) {
+                // --- (MERGE) --- CORREGIDO: Usando el checkCollision correcto
+                if (nave.checkCollision(asteroide, delta)) {
+                    asteroide.recibirHit(1, delta);
                 }
             }
-        } // Fin de 'if (!nave.estaHerido())'
+        }
+
+        // --- (MERGE) --- Nave vs Kamikaze
+        for (Kamikaze kamikaze : kamikazes) {
+            if (!kamikaze.estaDestruido()) {
+
+                if (nave.checkCollision(kamikaze, delta)) {
+
+                    kamikaze.recibirHit(10, delta);
+                }
+            }
+        }
+
+        // Asteroide vs Asteroide
+        for (int i = 0; i < balls1.size(); i++) {
+            Ball2 ball1 = balls1.get(i);
+            if (ball1.estaDestruido()) continue;
+            for (int j = i + 1; j < balls1.size(); j++) {
+                Ball2 ball2 = balls1.get(j);
+                if (!ball2.estaDestruido()) {
+                    ball1.checkCollision(ball2); // (Este método es de Ball2)
+                }
+            }
+        }
+
+        // Nave vs PowerUps
+        for (int i = 0; i < powerUps.size(); i++) {
+            PowerUp p = powerUps.get(i);
+
+
+            p.update(delta, this);
+            p.draw(batch);
+
+
+            if (p.getHitbox().overlaps(nave.getHitbox())) {
+
+
+                p.recoger(nave);
+
+            }
+        }
 
         // --- 3. DIBUJADO FINAL ---
         // Dibuja todo (los que estén destruidos no se dibujarán si lo manejas en su 'draw')
@@ -290,8 +339,18 @@ public class PantallaJuego implements Screen {
         balls1.removeAll(asteroidesARemover);
         balls2.removeAll(asteroidesARemover);
 
+
+        for (int i = 0; i < powerUps.size(); i++) {
+            if (powerUps.get(i).estaDestruido()) {
+                powerUps.remove(i);
+                i--;
+            }
+        }
+
         // --- (MERGE) ---
         kamikazes.removeIf(Kamikaze::estaDestruido);
+
+
 
         // --- 5. FIN DE JUEGO / SIGUIENTE NIVEL ---
 
@@ -354,29 +413,33 @@ public class PantallaJuego implements Screen {
 		// TODO Auto-generated method stub
 		this.explosionSound.dispose();
 		this.gameMusic.dispose();
+        this.txBarra.dispose();
+        this.txEnemigo.dispose();
+        this.txAsteroide.dispose();
 	}
 
     public void crearPowerUpEn(float x, float y, TipoPowerUp tipo) {
-        powerUps.add(new PowerUp(x, y, powerUpTexture, tipo));
-    }
+        PowerUp p = null;
 
-    private void aplicarEfectoPowerUp(TipoPowerUp tipo) {
         switch (tipo) {
             case MEJORA_ARMA:
-                nave.mejorarArma(this);
-                // sonidoPowerUpMejorarArma.play(); a crear
+
+                p = new PowerUpArma(x, y, powerUpTexture, this);
                 break;
             case COMBUSTIBLE:
-                nave.agregarCombustible(40f);
-                // sonidoPowerUpAgregarCombustible.play(); a crear
-                break;
 
+                p = new PowerUpCombustible(x, y, powerUpTexture);
+                break;
             case NAVE_ALIADA:
-                nave.agregarAliado();
-                // sonidoPowerUpAliado.play(); a crear
+                p = new PowerUpAliado(x, y, powerUpTexture);
                 break;
         }
+
+        if (p != null) {
+            powerUps.add(p);
+        }
     }
+
 
     public void agregarScore(int puntos){
         score+=puntos;

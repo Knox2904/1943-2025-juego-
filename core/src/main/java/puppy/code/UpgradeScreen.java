@@ -50,7 +50,12 @@ public class UpgradeScreen implements Screen {
         int posY = 200;      // Altura Y
 
         // Calcula las posiciones X para 3 tarjetas centradas
-        int espacio = (480 - (anchoTarjeta * 3)) / 4; // Espacio entre tarjetas
+
+
+        int screenWidth = Gdx.graphics.getWidth();
+        int anchoTotalTarjetas = anchoTarjeta * 3;
+        int espacioSobrante = screenWidth - anchoTotalTarjetas;
+        int espacio = espacioSobrante / 4;
 
         opcionesHitbox[0] = new Rectangle(espacio, posY, anchoTarjeta, altoTarjeta);
         opcionesHitbox[1] = new Rectangle(espacio * 2 + anchoTarjeta, posY, anchoTarjeta, altoTarjeta);
@@ -91,6 +96,8 @@ public class UpgradeScreen implements Screen {
             }
         }
 
+
+
         // --- ARREGLO DE TRANSPARENCIA ---
         // Esto deja el último frame del juego "pausado" en el fondo.
 
@@ -126,8 +133,10 @@ public class UpgradeScreen implements Screen {
             Rectangle box = opcionesHitbox[i];
             UpgradeCard card = opcionesActuales[i];
 
-            // (Aquí podrías dibujar un borde de tarjeta si tuvieras la textura)
+
             // batch.draw(texturaBordeTarjeta, box.x, box.y, box.width, box.height);
+
+
 
             // Dibuja el Título de la tarjeta
             font.draw(batch, card.getTitulo(),
@@ -145,6 +154,22 @@ public class UpgradeScreen implements Screen {
                 com.badlogic.gdx.utils.Align.center, // <-- ARREGLO DE CENTRADO
                 true);
         }
+
+        // --- DIBUJAR ADVERTENCIA DE DIFICULTAD ---
+        font.setColor(Color.RED); // Ponemos la letra roja para que destaque
+        font.getData().setScale(1.0f); // Tamaño normal
+
+        String advertencia = "ADVERTENCIA: Detectada señal enemiga.\nAl mejorar tus sistemas, la flota enemiga aumentará su agresividad.";
+
+        font.draw(batch, advertencia,
+            20,                         // X (un poco de margen)
+            120,                        // Y (debajo de las tarjetas)
+            Gdx.graphics.getWidth() - 40, // Ancho máximo (para que haga salto de línea)
+            com.badlogic.gdx.utils.Align.center, // Centrado
+            true);                      // Habilitar wrap (salto de línea automático)
+
+        font.setColor(Color.WHITE); // ¡IMPORTANTE! Vuelve a ponerla blanca para lo demás
+
 
         batch.end();
     }
