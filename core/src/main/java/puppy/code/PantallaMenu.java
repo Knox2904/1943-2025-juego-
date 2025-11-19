@@ -33,6 +33,7 @@ public class PantallaMenu implements Screen {
 		game.getBatch().end();
 
 		if (Gdx.input.isTouched() || Gdx.input.isKeyJustPressed(Input.Keys.ANY_KEY)) {
+            BuffManager.getInstance().resetBuffs();
 			Screen ss = new PantallaJuego(game,1,100f,0,10 , 10 , 10);
 			ss.resize(480, 640);
 			game.setScreen(ss);

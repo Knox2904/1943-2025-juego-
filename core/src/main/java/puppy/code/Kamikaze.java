@@ -22,13 +22,17 @@ public class Kamikaze extends EntidadJuego {
      * @param velocidadE La velocidad base (ej: 375.0f) que usará.
      */
 
-    public Kamikaze(float spawnX, float spawnY, Nave4 naveObjetivo, Texture tx, float velocidadE ) {
+    float multiplicador = BuffManager.getInstance().getEnemySpeedMultiplier();
 
-        // 1. Llama al constructor padre (EntidadJuego)
-        //    Esto inicializa 'x', 'y', 'spr' y guarda 'velocidadE' en el campo 'velocidadPEI' heredado.
-        super(tx, spawnX, spawnY, velocidadE,1);
+    public Kamikaze(float spawnX, float spawnY, Nave4 naveObjetivo, Texture tx, float velocidadE) {
 
-        // --- LÓGICA DE DIRECCIÓN FIJA ---
+        // 1. LLAMADA AL PADRE (SUPER)
+        // Aquí es donde hacemos la multiplicación DIRECTAMENTE dentro de los argumentos.
+        super(tx, spawnX, spawnY,
+            velocidadE * BuffManager.getInstance().getEnemySpeedMultiplier(),
+            1);
+
+        // 2. Inicializamos el resto
         this.objetivo = naveObjetivo;
     }
 

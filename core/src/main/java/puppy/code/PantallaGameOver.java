@@ -31,6 +31,7 @@ public class PantallaGameOver implements Screen {
 		game.getFont().draw(game.getBatch(), "Pincha en cualquier lado para reiniciar ...", 100, 300);
 
 		game.getBatch().end();
+        BuffManager.getInstance().resetBuffs();
 
 		if (Gdx.input.isTouched() || Gdx.input.isKeyJustPressed(Input.Keys.ANY_KEY)) {
 			Screen ss = new PantallaJuego(game,1,100f,0,10 , 10 , 10 );

@@ -1,41 +1,47 @@
 package puppy.code;
 
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 
-enum TipoPowerUp  {
 
-	MEJORA_ARMA,
-    COMBUSTIBLE,
-    NAVE_ALIADA
+public abstract class PowerUp extends GameObject {
 
-}
+    private float scrollSpeed = 100f;
+    private boolean destroyed = false;
 
-
-public class PowerUp extends GameObject {
-
-    private TipoPowerUp tipo;
-    private float scrollSpeed = 100f ;
-
-    public PowerUp(float x, float y, Texture texture, TipoPowerUp tipo) {
+    public PowerUp(float x, float y, Texture texture) {
         super(x, y, texture);
-        this.tipo = tipo;
-
         this.hitbox = new Rectangle(x, y, texture.getWidth(), texture.getHeight());
+    }
 
+
+    public final void recoger(Nave4 nave) {
+        reproducirSonido();      //(Común)
+        aplicarEfecto(nave);     //(Abstracto - Diferente en cada hijo)
+        destruir();              //(Común)
+    }
+
+
+    protected abstract void aplicarEfecto(Nave4 nave);
+
+
+    private void reproducirSonido() {
+        // sonidoPowerUp.play();
+        System.out.println("Sonido de PowerUp recogido");
+    }
+
+    private void destruir() {
+        this.destroyed = true;
+    }
+
+    public boolean estaDestruido() {
+        return destroyed;
     }
 
     @Override
     public void update(float delta, PantallaJuego juego) {
         position.y -= scrollSpeed * delta;
         spr.setPosition(position.x, position.y);
-
-    }
-
-
-    public TipoPowerUp getTipo() {
-        return tipo;
     }
 
 }

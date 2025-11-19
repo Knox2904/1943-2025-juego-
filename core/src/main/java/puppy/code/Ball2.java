@@ -16,7 +16,7 @@ public class Ball2 extends EntidadJuego {
 
     public Ball2(float x, float y, int size,  float velocidadAsteroide, Texture tx) {
         //Esto asigna this.x = x, this.y = y, y crea el sprite.
-        super(tx, x, y, velocidadAsteroide , 1);
+        super(tx, x, y, velocidadAsteroide * BuffManager.getInstance().getEnemySpeedMultiplier() , 1);
 
         float angulo = MathUtils.random(0f, 360f);
         this.xSpeed = MathUtils.cosDeg(angulo) * this.velocidadPEI;
