@@ -7,9 +7,7 @@ import com.badlogic.gdx.math.Rectangle;
 // EntidadJuego hereda TODO de GameObject (spr, position, hitbox, draw)
 public abstract class EntidadJuego extends GameObject implements IDestruible {
 
-    // --- VARIABLES ELIMINADAS ---
-    // protected float x, y; // <-- BORRADO (Ya existe 'position' en GameObject)
-    // protected Sprite spr; // <-- BORRADO (¡Esta era la causa del crash!)
+
 
     // --- VARIABLES PROPIAS DE ENTIDADJUEGO ---
     protected boolean destroyed = false;
@@ -56,6 +54,9 @@ public abstract class EntidadJuego extends GameObject implements IDestruible {
         this.vidaActual = 0;
         this.destroyed = true;
     }
+
+    @Override
+    public abstract void update(float delta, PantallaJuego juego);
 
     // --- GETTERS (Modificados para usar 'position' del padre) ---
 

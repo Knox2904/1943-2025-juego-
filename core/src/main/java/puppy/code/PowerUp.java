@@ -8,6 +8,7 @@ public abstract class PowerUp extends GameObject {
 
     private float scrollSpeed = 100f;
     private boolean destroyed = false;
+    protected TipoPowerUp tipo;
 
     public PowerUp(float x, float y, Texture texture) {
         super(x, y, texture);
@@ -43,5 +44,7 @@ public abstract class PowerUp extends GameObject {
         position.y -= scrollSpeed * delta;
         spr.setPosition(position.x, position.y);
     }
+
+
 
 }
