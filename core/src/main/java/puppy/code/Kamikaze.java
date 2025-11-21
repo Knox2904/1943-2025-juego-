@@ -42,7 +42,7 @@ public class Kamikaze extends EntidadJuego {
      * @param delta El tiempo desde el último frame.
      */
     @Override
-    public void update(float delta , PantallaJuego juego) {
+    public void update(float delta, PantallaJuego juego) {
 
         //posicion actual del objetivo.
         float targetX = objetivo.getX();

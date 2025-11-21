@@ -43,7 +43,7 @@ public class Ball2 extends EntidadJuego {
 
     // 4. Implementamos el método abstracto 'update'
     @Override
-    public void update(float delta , PantallaJuego juego) {
+    public void update(float delta, PantallaJuego juego) {
 
         position.x += xSpeed * delta;
         position.y += ySpeed * delta;

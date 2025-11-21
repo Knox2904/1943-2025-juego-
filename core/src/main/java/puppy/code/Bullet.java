@@ -8,12 +8,12 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 public class Bullet implements IDestruible {
 
-	private int xSpeed;
-	private int ySpeed;
+	private float xSpeed;
+	private float ySpeed;
 	private boolean destroyed = false;
 	private Sprite spr;
 
-	    public Bullet(float x, float y, int xSpeed, int ySpeed, Texture tx) {
+	    public Bullet(float x, float y, float xSpeed, float ySpeed, Texture tx) {
 	    	spr = new Sprite(tx);
 	    	spr.setPosition(x, y);
 	        this.xSpeed = xSpeed;
@@ -77,6 +77,17 @@ public class Bullet implements IDestruible {
 
         public float getY() {
         return spr.getY();
+    }
+
+
+    // ESTE METODO FUNCIONA PARA CUALQUIER ENEMIGO (Kamikaze, KamikazeS, Tank, etc.)
+    public boolean checkCollision(com.badlogic.gdx.math.Rectangle rect) {
+        if (spr.getBoundingRectangle().overlaps(rect)) {
+            // Se destruye la bala
+            this.destroyed = true;
+            return true;
+        }
+        return false;
     }
 
 
