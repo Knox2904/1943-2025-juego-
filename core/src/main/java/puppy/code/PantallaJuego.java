@@ -46,7 +46,8 @@ public class PantallaJuego implements Screen {
     private OleadaFactory factory;
     //  Variables añadidas
     private ArrayList<EntidadJuego> enemigos = new ArrayList<>();
-    private float spawnTimerEnemigo = 2f; // Timer para el kamikaze (5 segundos)
+    private ArrayList<EntidadJuego> enemigosPendientes = new ArrayList<>();
+    private float spawnTimerEnemigo = 0f; // Timer para el kamikaze (5 segundos)
 
 
 
@@ -104,35 +105,70 @@ public class PantallaJuego implements Screen {
             factory = new EnemigoT2(txKamikazeS, txTank, txBalaEnemiga);
         }
         Random r = new Random();
-        //Se crean enemigo tipo 1, los debiles, kamikazes y asteroides
-        for (int i = 0; i < cantAsteroides; i++) {
-            float x = r.nextInt(Gdx.graphics.getWidth());
-            float y = Gdx.graphics.getHeight() + r.nextInt(600);
+        // 1. CALCULAR PRESUPUESTO DE LA RONDA
+        // Ronda 1 = 10 puntos. Ronda 2 = 15 puntos. Ronda 3 = 20...
+        int presupuesto = 10 + ((ronda - 1) * 5);
 
-            // La fábrica decide qué crear y devuelve un EntidadJuego
-            EntidadJuego enemigo = factory.createEnemigoT1(x, y, this);
-            //velocidad aleatoria para asteroide
-            if (enemigo instanceof Ball2) {
-                Ball2 b = (Ball2) enemigo;
+        // 2. COMPRAR ENEMIGOS HASTA AGOTAR PRESUPUESTO
+        while (presupuesto > 0) {
+            float x = r.nextInt(Gdx.graphics.getWidth() - 64);
+            float y = Gdx.graphics.getHeight() + 50; // Todos spawnean arriba, la cola los administrará
 
-                // Tu fórmula original para velocidad loca
-                float velocidadLoca = 150f + r.nextInt((int) MathUtils.random(500f, 1000f));
-                float angulo = MathUtils.random(0f, 360f);
+            EntidadJuego nuevoEnemigo = null;
+            int costo = 0;
 
-                // Sobrescribimos la velocidad que puso la fábrica
-                b.setXSpeed(MathUtils.cosDeg(angulo) * velocidadLoca);
-                b.setySpeed(MathUtils.sinDeg(angulo) * velocidadLoca);
+            // logica de compra de rondas
+            if (ronda == 1) {
+                // Nivel 1: Solo Coste 1 (Asteroides y Kamikazes normales)
+                if (r.nextBoolean()) {
+                    nuevoEnemigo = factory.createEnemigoT1(x, y, this); // Asteroide
+                    // Lógica de velocidad aleatoria para Asteroides
+                    if (nuevoEnemigo instanceof Ball2) {
+                        Ball2 b = (Ball2) nuevoEnemigo;
+                        float velocidadLoca = 150f + r.nextInt((int) MathUtils.random(500f, 1000f));
+                        float angulo = MathUtils.random(0f, 360f);
+                        b.setXSpeed(MathUtils.cosDeg(angulo) * velocidadLoca);
+                        b.setySpeed(MathUtils.sinDeg(angulo) * velocidadLoca);
+                    }
+                } else {
+                    nuevoEnemigo = factory.createEnemigoT2(x, y, this); // Kamikaze
+                }
+                costo = 1;
             }
-            enemigos.add(enemigo);
-        }
-        // se crean Enemigos Tipo 2 (Fuertes, Kamikaze o NaveTanque)
-        int cantidadFuertes = 5 + (ronda * 2);
-        for (int i = 0; i < cantidadFuertes; i++) {
-            float x = r.nextInt(Gdx.graphics.getWidth());
-            float y = Gdx.graphics.getHeight() + r.nextInt(600) + 50;
+            else {
+                // Nivel 2+: Variedad con Costos
+                // Probabilidades ajustadas para gastar presupuesto
+                int dado = r.nextInt(100);
 
-            EntidadJuego fuerte = factory.createEnemigoT2(x, y, this);
-            enemigos.add(fuerte);
+                if (dado < 40 && presupuesto >= 3) {
+                    // 40% Probabilidad: TANQUE (Coste 3)
+                    nuevoEnemigo = factory.createEnemigoT2(x, y, this);
+                    costo = 3;
+                }
+                else if (dado < 70 && presupuesto >= 2) {
+                    // 30% Probabilidad: KAMIKAZE-S (Coste 2)
+                    nuevoEnemigo = factory.createEnemigoT1(x, y, this);
+                    costo = 2;
+                }
+                else {
+
+
+                    // Por ahora, si no alcanza para tanque, compramos lo más barato disponible en esta factory
+                    nuevoEnemigo = factory.createEnemigoT1(x, y, this);
+                    costo = 2; //
+
+                    //  si presupuesto es 1 y todo vale 2, rompemos el bucle
+                    if (presupuesto < costo) break;
+                }
+            }
+
+            // Añadir a la COLA DE PENDIENTES (No a la pantalla todavía)
+            if (nuevoEnemigo != null) {
+                enemigosPendientes.add(nuevoEnemigo);
+                presupuesto -= costo;
+            } else {
+                break; // Evitar bucles infinitos si hay error
+            }
         }
 
     }
@@ -186,14 +222,13 @@ public class PantallaJuego implements Screen {
 
         // 2. Actualizar Balas ENEMIGAS
         for (Bullet b : balasEnemigas) {
-            b.update(); // Asegúrate que Bullet tenga un update simple
-            if (b.getX() < -10 || b.getX() > Gdx.graphics.getWidth() + 10 ||
-                b.getY() < -10 || b.getY() > Gdx.graphics.getHeight() + 10) {
+            b.update();
+            // Check salida de pantalla
+            if (b.getY() < -50 || b.getY() > Gdx.graphics.getHeight() + 50) {
                 b.recibirHit(1, 0);
             }
         }
         // Actualizar TODOS los enemigos (Asteroides, Kamikazes, Tanques)
-        // Gracias al polimorfismo, cada uno se mueve a su manera.
         for (EntidadJuego enemigo : enemigos) {
             enemigo.update(delta, this);
         }
@@ -201,6 +236,25 @@ public class PantallaJuego implements Screen {
         // Actualizar PowerUps
         for (PowerUp p : powerUps) {
             p.update(delta, this);
+        }
+
+        // --- SPAWNER PROGRESIVO (Sacar de la cola de pendientes) ---
+        if (!enemigosPendientes.isEmpty()) {
+            // Solo sacamos enemigos si hay en la cola
+            spawnTimerEnemigo -= delta;
+
+            if (spawnTimerEnemigo <= 0) {
+                // 1. Sacar el siguiente enemigo de la lista de espera
+                EntidadJuego enemigoASpawnear = enemigosPendientes.remove(0);
+
+                // 2. Activarlo (meterlo al juego real)
+                enemigos.add(enemigoASpawnear);
+
+                // 3. Calcular cuándo sale el siguiente (ej: entre 0.5 y 1.5 segundos)
+                //    Usamos el multiplicador de BuffManager para que sea más rápido si es difícil
+                float spawnRate = BuffManager.getInstance().getEnemySpawnRateMultiplier();
+                spawnTimerEnemigo = MathUtils.random(0.5f, 1.5f) / spawnRate;
+            }
         }
 
 
@@ -222,7 +276,6 @@ public class PantallaJuego implements Screen {
 
                 for (EntidadJuego enemigo : enemigos) {
                     if (!enemigo.estaDestruido()) {
-                        // Usamos getArea() (o getHitbox() si lo cambiaste en EntidadJuego)
                         if (b.checkCollision(enemigo.getHitbox())) {
                             explosionSound.play();
                             enemigo.recibirHit(1, delta); // Dañar enemigo
@@ -233,7 +286,7 @@ public class PantallaJuego implements Screen {
                     }
                 }
             }
-            // B. Colisión: Balas ENEMIGAS contra JUGADOR (Aquí arreglas el fuego amigo)
+            // B. Colisión: Balas ENEMIGAS contra JUGADOR
             for (Bullet b : balasEnemigas) {
                 if (b.estaDestruido()) continue;
                 if (b.checkCollision(nave.getHitbox())) {
@@ -284,8 +337,7 @@ public class PantallaJuego implements Screen {
                 p.draw(batch);         // Dibujar
 
                 if (p.getHitbox().overlaps(nave.getHitbox())) {
-                    // Esto llama a la lógica interna de cada PowerUp (Template Method)
-                    // en lugar de usar el switch externo.
+
                     p.recoger(nave);
 
                     powerUps.remove(i);
@@ -321,7 +373,7 @@ public class PantallaJuego implements Screen {
         }
 
         // Si no quedan enemigos, pasamos a la siguiente ronda
-        if (enemigos.isEmpty()) {
+        if (enemigos.isEmpty() && enemigosPendientes.isEmpty()) {
             // Crea la nueva pantalla con ronda + 1 y más enemigos
             Screen ss = new PantallaJuego(game,
                 ronda + 1,
