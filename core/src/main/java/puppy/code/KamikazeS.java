@@ -6,76 +6,103 @@ import com.badlogic.gdx.math.MathUtils;
 
 public class KamikazeS extends EntidadJuego {
 
-    // Variables para el movimiento (Exclusivas de este enemigo)
-    private float time = 0;
-    private float centerX; // El eje central de la onda
+    // Estados del patrón Zero
+    private int estado = 0; // 0: Bajar, 1: Loop (Rizo), 2: Subir/Retirada
 
-    // Variables para el disparo (Lógica similar al Kamikaze)
-    private Nave4 objetivo;
+    // Variables para el movimiento circular
+    private float anguloActual;
+    private float centroGiroX;
+    private float centroGiroY;
+    private float radioLoop = 100f; // Radio del rizo
+
     private float fireTimer = 0;
     private Texture txBala;
 
-    public KamikazeS(float x, float y, Nave4 naveObjetivo, Texture tx, Texture txBala, float velocidadE) {
-        // 1. Llama al padre
-        super(tx, x, y, velocidadE, 1); // Vida 1
-
-        this.centerX = x; // Guardamos la X inicial
-        this.objetivo = naveObjetivo;
+    public KamikazeS(float x, float y, Nave4 naveObjetivo, Texture tx, Texture txBala, float velocidad) {
+        super(tx, x, y, velocidad, 2); // Vida 2
         this.txBala = txBala;
+        spr.setRotation(180); // Empieza mirando hacia abajo
     }
 
     @Override
     public void update(float delta, PantallaJuego juego) {
-        time += delta;
 
-        // --- 1. MOVIMIENTO (Único de este enemigo: Olas) ---
-        // Baja constante en Y
-        position.y -= this.velocidadPEI * delta;
+        switch (estado) {
+            case 0: // --- BAJANDO ---
+                position.y -= velocidadPEI * delta;
+                spr.setRotation(180);
 
-        // Oscila en X usando Seno (Matemática de ondas)
-        float amplitud = 150f;
-        float frecuencia = 3f;
-        position.x = centerX + (amplitud * MathUtils.sin(time * frecuencia));
+                // Al llegar al 60% de la altura, inicia el rizo
+                if (position.y < Gdx.graphics.getHeight() * 0.6f) {
+                    estado = 1;
+                    // Configura el centro del giro a su derecha
+                    centroGiroX = position.x + radioLoop;
+                    centroGiroY = position.y;
+                    anguloActual = MathUtils.PI; // 180 grados (lado izquierdo del círculo)
+                }
+                break;
+
+            case 1:
+                // Velocidad angular = Velocidad lineal / Radio
+                float velocidadAngular = velocidadPEI / radioLoop;
+
+                // Restamos ángulo para girar en sentido horario
+                anguloActual -= velocidadAngular * delta;
+
+                // Mover en círculo
+                position.x = centroGiroX + radioLoop * MathUtils.cos(anguloActual);
+                position.y = centroGiroY + radioLoop * MathUtils.sin(anguloActual);
+
+                // Rotar sprite
+                float grados = anguloActual * MathUtils.radiansToDegrees;
+                spr.setRotation(grados - 90);
+
+                // Si completó el giro y mira hacia arriba, salir
+                if (anguloActual <= -1.5f * MathUtils.PI) {
+                    estado = 2;
+                    spr.setRotation(0);
+                }
+                break;
+
+            case 2: // --- SUBIENDO (RETIRADA) ---
+                position.y += velocidadPEI * delta;
+                spr.setRotation(0);
+
+                if (position.y > Gdx.graphics.getHeight() + 50) {
+                    destruir();
+                }
+                break;
+        }
 
         spr.setPosition(position.x, position.y);
 
-        // --- 2. DISPARO (Aquí reutilizas la lógica del Kamikaze) ---
+        // --- DISPARO ---
         fireTimer += delta;
-        if (fireTimer > 2.0f) { // Dispara cada 2 segundos
+        if (fireTimer > 0.8f) { // Dispara rápido
             fireTimer = 0;
             dispararAlJugador(juego);
-        }
-
-        // --- 3. LÍMITES ---
-        if (position.y < -50) {
-            destruir();
         }
     }
 
     private void dispararAlJugador(PantallaJuego juego) {
-        // AQUI ESTÁ LA REUTILIZACIÓN:
-        // Usamos la misma matemática del Kamikaze, pero para la bala.
-
-        // 1. Calcular vector hacia el jugador
-        float targetX = objetivo.getX();
-        float targetY = objetivo.getY();
-        float deltaX = targetX - this.position.x;
-        float deltaY = targetY - this.position.y;
-
-        // 2. Calcular distancia
+        Nave4 nave = juego.getNave();
+        float deltaX = nave.getX() - this.position.x;
+        float deltaY = nave.getY() - this.position.y;
         float distancia = (float) Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
         if (distancia > 0) {
-            // 3. Calcular velocidad dirigida (igual que el Kamikaze)
-            float velocidadBala = 400f; // Rápida
+            //  Velocidad baja (5f o 6f)
+            float velocidadBala = 6f;
             float balaVX = (deltaX / distancia) * velocidadBala;
             float balaVY = (deltaY / distancia) * velocidadBala;
 
-            // 4. Crear la bala con esa velocidad calculada
-            float spawnX = position.x + spr.getWidth()/2 - 5; // Centrada
+            // Spawn centrado
+            float spawnX = position.x + spr.getWidth()/2 - 5;
 
-            // (Asegúrate de que Bullet acepte floats en el constructor)
+            // Crear bala
             Bullet b = new Bullet(spawnX, position.y, balaVX, balaVY, txBala);
+
+
             juego.agregarBalaEnemiga(b);
         }
     }

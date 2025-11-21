@@ -34,13 +34,13 @@ public class NaveTanque extends EntidadJuego {
 
                 float balaX = position.x + spr.getWidth()/2 - 5;
 
-                // Disparo triple en abanico
+                // Disparo triple en abanico, para cubrir area
                 // Bala Central
-                juego.agregarBalaEnemiga(new Bullet(balaX, position.y, 0, -300f, txBala));
+                juego.agregarBalaEnemiga(new Bullet(balaX, position.y, 0, -6f, txBala));
                 // Bala Diagonal Derecha (velocidad X positiva)
-                juego.agregarBalaEnemiga(new Bullet(balaX, position.y, 100, -280f, txBala));
+                juego.agregarBalaEnemiga(new Bullet(balaX, position.y, 2, -5f, txBala));
                 // Bala Diagonal Izquierda (velocidad X negativa)
-                juego.agregarBalaEnemiga(new Bullet(balaX, position.y, -100, -280f, txBala));
+                juego.agregarBalaEnemiga(new Bullet(balaX, position.y, -2, -5f, txBala));
             }
         }
     }
