@@ -2,7 +2,8 @@ package puppy.code;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.math.MathUtils; // Importa MathUtils para los cálculos
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 
 // Kamikaze hereda de EntidadJuego
 public class Kamikaze extends EntidadJuego {
@@ -25,15 +26,17 @@ public class Kamikaze extends EntidadJuego {
     float multiplicador = BuffManager.getInstance().getEnemySpeedMultiplier();
 
     public Kamikaze(float spawnX, float spawnY, Nave4 naveObjetivo, Texture tx, float velocidadE) {
-
-        // 1. LLAMADA AL PADRE (SUPER)
-        // Aquí es donde hacemos la multiplicación DIRECTAMENTE dentro de los argumentos.
         super(tx, spawnX, spawnY,
             velocidadE * BuffManager.getInstance().getEnemySpeedMultiplier(),
             1);
-
-        // 2. Inicializamos el resto
         this.objetivo = naveObjetivo;
+
+        spr.setSize(50, 50);
+        spr.setOriginCenter();
+
+        // Actualiza la hitbox
+        this.hitbox.setSize(50, 50);
+
     }
 
     /**
@@ -84,6 +87,25 @@ public class Kamikaze extends EntidadJuego {
             // Usa 'destroyed' (heredado de EntidadJuego)
             this.destroyed = true;
         }
+    }
+
+
+    // En Kamikaze.java
+
+    @Override
+    public Rectangle getHitbox() {
+        // 1. Calculamos cuánto "sobra" de imagen a los lados
+        float diferenciaAncho = spr.getWidth() - hitbox.getWidth();
+        float diferenciaAlto = spr.getHeight() - hitbox.getHeight();
+
+        // 2. Movemos la hitbox:
+        // Posición base + la mitad de lo que sobra
+        hitbox.setPosition(
+            position.x + (diferenciaAncho / 2),
+            position.y + (diferenciaAlto / 2)
+        );
+
+        return hitbox;
     }
 
 

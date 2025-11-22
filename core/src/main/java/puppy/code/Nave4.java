@@ -28,7 +28,7 @@ public class Nave4 extends GameObject implements IDestruible {
     private Texture txAliado;
 
     private boolean herido = false;
-    private float tiempoHeridoMax = 1.5f;
+    private float tiempoHeridoMax = 1f;
     private float tiempoHerido;
     private float stateTime = 0;
 
@@ -117,7 +117,7 @@ public class Nave4 extends GameObject implements IDestruible {
                 float spawnY = spr.getY() + spr.getHeight() - 5;
 
                 fireStrategy.fire(juego, txBala, spawnX, spawnY);
-                soundBala.play();
+                soundBala.play(0.25f);
 
                 float fireRateMod = BuffManager.getInstance().getFireRateModifier();
                 float fireRateActual = fireRateBase / fireRateMod;

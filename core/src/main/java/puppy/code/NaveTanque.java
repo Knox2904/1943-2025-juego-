@@ -1,7 +1,8 @@
 package puppy.code;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
-//import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 
 public class NaveTanque extends EntidadJuego {
 
@@ -13,12 +14,18 @@ public class NaveTanque extends EntidadJuego {
         // Velocidad lenta: 80, Vida ALTA: 10
         super(tx, x, y, 80f, 10);
         this.txBala = txBala;
+
+        // Ajuste de tamaño visual
+        spr.setSize(180, 180); // (Bajé de 500 a 300 para que no sea monstruoso)
+        spr.setOriginCenter();
+
+        // Ajuste de tamaño físico (Hitbox)
+        this.hitbox.setSize(180, 180); // (Más pequeño que el sprite para ser justo)
     }
 
     @Override
     public void update(float delta, PantallaJuego juego) {
-
-        // 1. Movimiento: Bajar hasta llegar a Y=400 (parte superior de la pantalla)
+        // 1. Movimiento: Bajar hasta Y = AltoPantalla - 150
         if (position.y > 400) {
             position.y -= velocidadPEI * delta;
         } else {
@@ -26,22 +33,38 @@ public class NaveTanque extends EntidadJuego {
         }
         spr.setPosition(position.x, position.y);
 
-        // 2. Disparo (Solo si ya llegó a su posición)
+        // 2. Disparo
         if (enPosicion) {
             fireTimer += delta;
-            if (fireTimer > 2.0f) { // Dispara cada 2 segundos
+            if (fireTimer > 2.0f) {
                 fireTimer = 0;
 
+                // Calculamos el centro para disparar
                 float balaX = position.x + spr.getWidth()/2 - 5;
+                float balaY = position.y  + 50 ; // Ajuste para que salga del cañón
 
-                // Disparo triple en abanico, para cubrir area
-                // Bala Central
-                juego.agregarBalaEnemiga(new Bullet(balaX, position.y, 0, -6f, txBala));
-                // Bala Diagonal Derecha (velocidad X positiva)
-                juego.agregarBalaEnemiga(new Bullet(balaX, position.y, 2, -5f, txBala));
-                // Bala Diagonal Izquierda (velocidad X negativa)
-                juego.agregarBalaEnemiga(new Bullet(balaX, position.y, -2, -5f, txBala));
+                juego.agregarBalaEnemiga(new Bullet(balaX, balaY, 0, -5f, txBala));
+                juego.agregarBalaEnemiga(new Bullet(balaX, balaY, 2f, -4f, txBala));
+                juego.agregarBalaEnemiga(new Bullet(balaX, balaY, -2f, -4f, txBala));
             }
         }
     }
+
+    @Override
+    public Rectangle getHitbox() {
+        // Centra la hitbox matemáticamente
+        float diferenciaAncho = spr.getWidth() - hitbox.getWidth();
+        float diferenciaAlto = spr.getHeight() - hitbox.getHeight();
+
+        hitbox.setPosition(
+            position.x + (diferenciaAncho / 2),
+            position.y + (diferenciaAlto / 2)
+        );
+
+        return hitbox;
+    }
+
+
+
+
 }

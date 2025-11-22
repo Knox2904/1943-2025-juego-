@@ -3,6 +3,7 @@ package puppy.code;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 
 public class KamikazeS extends EntidadJuego {
 
@@ -22,6 +23,13 @@ public class KamikazeS extends EntidadJuego {
         super(tx, x, y, velocidad, 2); // Vida 2
         this.txBala = txBala;
         spr.setRotation(180); // Empieza mirando hacia abajo
+
+
+        spr.setSize(50, 50);
+        spr.setOriginCenter();
+
+        // Actualiza la hitbox
+        this.hitbox.setSize(50, 50);
     }
 
     @Override
@@ -106,4 +114,22 @@ public class KamikazeS extends EntidadJuego {
             juego.agregarBalaEnemiga(b);
         }
     }
+
+    @Override
+    public Rectangle getHitbox() {
+        // 1. Calculamos cuánto "sobra" de imagen a los lados
+        float diferenciaAncho = spr.getWidth() - hitbox.getWidth();
+        float diferenciaAlto = spr.getHeight() - hitbox.getHeight();
+
+        // 2. Movemos la hitbox:
+        // Posición base + la mitad de lo que sobra
+        hitbox.setPosition(
+            position.x + (diferenciaAncho / 2),
+            position.y + (diferenciaAlto / 2)
+        );
+
+        return hitbox;
+    }
+
+
 }
