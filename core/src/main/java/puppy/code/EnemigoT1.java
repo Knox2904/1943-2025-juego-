@@ -1,33 +1,31 @@
 package puppy.code;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.MathUtils;
 
 public class EnemigoT1 implements OleadaFactory {
     private Texture txAsteroide;
     private Texture txKamikaze;
+    private Texture txEliminaBuffs; // <--- Nueva textura
 
-    public EnemigoT1(Texture txAsteroide, Texture txKamikaze) {
+    public EnemigoT1(Texture txAsteroide, Texture txKamikaze, Texture txEliminaBuffs) {
         this.txAsteroide = txAsteroide;
         this.txKamikaze = txKamikaze;
+        this.txEliminaBuffs = txEliminaBuffs;
     }
 
     @Override
     public EntidadJuego createEnemigoT1(float x, float y, PantallaJuego juego) {
-        // Nivel 1 Débil: Ball2 (Asteroide)
         return new Ball2(x, y, 30, 150f, txAsteroide);
     }
 
     @Override
     public EntidadJuego createEnemigoT2(float x, float y, PantallaJuego juego) {
-        // Nivel 1 Fuerte: Kamikaze (Perseguidor)
-        return new Kamikaze(x, y, juego.getNave(), txKamikaze, 300f);
+        // LÓGICA DE PROBABILIDAD:
+        // 30% EliminaBuffs, 70% Kamikaze Normal
+        if (MathUtils.randomBoolean(0.3f)) {
+            return new EliminaBuffs(x, y, txEliminaBuffs);
+        } else {
+            return new Kamikaze(x, y, juego.getNave(), txKamikaze, 300f);
+        }
     }
-
-    //@Override
-    /*public EntidadJuego createBoss(float x, float y, PantallaJuego juego) {
-        Boss temporal: Kamikaze muy rápido
-        Boss temporal : un tanque mas rapido y que dispare
-        por ahora solo ideas
-    }
-    enemigo sin crear todavia..... , solo ideas para bosses
-     */
 }

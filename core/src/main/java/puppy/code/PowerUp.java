@@ -31,7 +31,7 @@ public abstract class PowerUp extends GameObject {
         System.out.println("Sonido de PowerUp recogido");
     }
 
-    private void destruir() {
+    public void destruir() {
         this.destroyed = true;
     }
 
