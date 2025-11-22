@@ -154,19 +154,28 @@ public class EnemigoHealer extends EntidadJuego {
     }
 
     // --- DIFICULTAD ---
-    public void aumentarDificultad(float factor) {
-        // En niveles altos cura más rápido
-        this.tiempoEntreCuras = 2.0f / factor;
+    public void aumentarDificultad(float factorRonda) {
+
+        float factorUpgradeSalud = BuffManager.getInstance().getEnemyHealthMultiplier();
+        float factorUpgradeVelocidad = BuffManager.getInstance().getEnemySpeedMultiplier();
+
+        // 1. Healing Rate (Tiempo entre curas)
+        this.tiempoEntreCuras = 2.0f / factorRonda;
         if (this.tiempoEntreCuras < 0.5f) this.tiempoEntreCuras = 0.5f;
 
-        // Cura más cantidad
-        this.cantidadCura = (int) (5 * factor);
-        this.reservaCuraTotal = (int) (20 * factor);
+        // 2. Healing Amount (Cantidad de cura)
+        this.cantidadCura = (int) (5 * factorRonda);
 
-        // Se mueve más rápido horizontalmente
-        this.velocidadX *= factor;
-        if (this.velocidadX > 400) this.velocidadX = 400; // Tope de velocidad
+        // 3. RESERVA DE CURA
+        this.reservaCuraTotal = (int) (20 * factorRonda * factorUpgradeSalud);
 
-        this.vidaActual = (int)(this.vidaActual * factor);
+        // 4. Velocidad Horizontal (Aplicamos el factor de Ronda y el de Velocidad)
+        // Multiplicamos la velocidad ya existente por ambos factores
+        this.velocidadX *= factorRonda * factorUpgradeVelocidad;
+        if (this.velocidadX > 400) this.velocidadX = 400;
+
+        // 5. VIDA ACTUAL (Fórmula corregida: Escalado Unificado)
+        // Multiplicamos la vida inicial por los dos factores de salud (Ronda y Upgrade)
+        this.vidaActual = (int)(this.vidaActual * factorRonda * factorUpgradeSalud);
     }
 }

@@ -11,6 +11,7 @@ public class BuffManager {
         this.fireRateModifier = 1.0f;
         this.extraDamage = 0;
         this.maxWeaponLevel = 1;
+        this.totalUpgradesApplied = 0;
     }
 
     //método público para OBTENER la instancia
@@ -27,6 +28,7 @@ public class BuffManager {
     private float fireRateModifier;
     private int extraDamage;
     private int maxWeaponLevel;
+    private int totalUpgradesApplied;
 
     // --- Variables de Enemigos ---
     private float enemySpeedMultiplier = 1.0f;
@@ -70,6 +72,7 @@ public class BuffManager {
                 if (this.maxWeaponLevel > 4) this.maxWeaponLevel = 4;
                 break;
         }
+        this.totalUpgradesApplied++;
         increaseDifficulty();
     }
 
@@ -79,6 +82,8 @@ public class BuffManager {
 
         // Y hace que aparezcan un 2% más seguido
         this.enemySpawnRateMultiplier += 2.00f;
+
+        this.enemyHealthMultiplier += 0.05f;
     }
 
 
@@ -93,10 +98,12 @@ public class BuffManager {
         this.fireRateModifier = 1.0f;
         this.extraDamage = 0;
         this.maxWeaponLevel = 1;
+        this.totalUpgradesApplied = 0;
 
         // --- Resetea Enemigos  ---
         this.enemySpeedMultiplier = 1.0f;
         this.enemySpawnRateMultiplier = 1.0f;
+        this.enemyHealthMultiplier = 1.0f;
 
 
     }
@@ -107,6 +114,20 @@ public class BuffManager {
     public int getMaxWeaponLevel() {
         return this.maxWeaponLevel;
     }
+    public float getFireRateMultiplier() {
+        return this.fireRateModifier;
+    }
+    public int getDamageMultiplier() {
+
+        return 1 + this.extraDamage;
+    }
+    public float getEnemyHealthMultiplier() {
+        return this.enemyHealthMultiplier;
+    }
+    public int getTotalUpgradesApplied() {
+        return this.totalUpgradesApplied;
+    }
+
 
 
 }

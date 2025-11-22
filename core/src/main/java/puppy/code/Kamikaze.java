@@ -118,13 +118,18 @@ public class Kamikaze extends EntidadJuego {
         return hitbox;
     }
 
-    public void aumentarDificultad(float factor) {
-        // Aumentamos su velocidad de movimiento
-        this.velocidadPEI *= factor;
+    public void aumentarDificultad(float factorRonda) {
 
-        //límite para que no se teletransporte si la ronda es muy alta
-        if (this.velocidadPEI > 800) {
-            this.velocidadPEI = 800;
+        // 1. OBTENER FACTOR DE VELOCIDAD POR UPGRADES
+        float factorUpgradeVelocidad = BuffManager.getInstance().getEnemySpeedMultiplier();
+
+        // 2. ESCALADO COMPUESTO
+        // Velocidad actual * Factor Ronda * Factor Upgrade
+        this.velocidadPEI *= factorRonda * factorUpgradeVelocidad;
+
+        // 3. LÍMITE DE SEGURIDAD (Se mantiene igual)
+        if (this.velocidadPEI > 1000) {
+            this.velocidadPEI = 1000;
         }
     }
 

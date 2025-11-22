@@ -29,6 +29,7 @@ public class SpaceNavigation extends Game {
 		font.getData().setScale(2f);
 		Screen ss = new PantallaMenu(this);
 		this.setScreen(ss);
+        playMenuMusic();
 	}
 
     public void playMusic() {
@@ -36,15 +37,21 @@ public class SpaceNavigation extends Game {
         if (gameMusic != null && gameMusic.isPlaying()) {
             return;
         }
+        if (gameMusic != null) gameMusic.dispose();
 
 
         String[] listaCanciones = {
+            //juego
             "Slum Lord.mp3",
             "The Gauntlet.mp3",
             "Payday 2 - Dirt & Dust (Border Crossing Heist Track).mp3",
-            "Payday 2 - Blastaway (Brooklyn Bank Track).mp3"
-
-
+            "Payday 2 - Blastaway (Brooklyn Bank Track).mp3",
+            "Acid Spit.mp3",
+            "Payday 2 Official Soundtrack - #38 Backstab.mp3",
+            "Nightsider.mp3",
+            "Warp Traveller.mp3",
+            "NARC.mp3",
+            "Light of the Imperium.mp3"
         };
 
 
@@ -58,7 +65,6 @@ public class SpaceNavigation extends Game {
         // Cargar y reproducir
         if (gameMusic != null) gameMusic.dispose(); // Limpia la anterior si existía
 
-
         gameMusic = Gdx.audio.newMusic(Gdx.files.internal(listaCanciones[indice]));
 
         gameMusic.setLooping(false);
@@ -66,6 +72,42 @@ public class SpaceNavigation extends Game {
             @Override
             public void onCompletion(Music music) {
                 playMusic();
+            }
+        });
+
+        gameMusic.setVolume(0.7f);
+        gameMusic.play();
+    }
+
+    public void playMenuMusic() {
+
+        if (gameMusic != null && gameMusic.isPlaying()) {
+            return;
+        }
+
+
+        String[] listaCanciones = {
+            "Legio Symphonica - Praetores De Sanctus Pella  Warhammer 40K Music.mp3",
+            "Warhammer 40,000 Mechanicus Soundtrack - 1. Children of the Omnissiah.mp3"
+        };
+
+
+        int indice;
+        indice = MathUtils.random(0, listaCanciones.length - 1);
+
+        lastSongIndex = indice;
+
+        // Cargar y reproducir
+        if (gameMusic != null) gameMusic.dispose();
+
+        gameMusic = Gdx.audio.newMusic(Gdx.files.internal(listaCanciones[indice]));
+
+        gameMusic.setLooping(false);
+        gameMusic.setOnCompletionListener(new Music.OnCompletionListener() {
+            @Override
+            public void onCompletion(Music music) {
+                // Al terminar, llama a playMenuMusic() de nuevo (para que siga con música de menú)
+                playMenuMusic();
             }
         });
 
