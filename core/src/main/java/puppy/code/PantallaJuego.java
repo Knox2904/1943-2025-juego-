@@ -60,6 +60,10 @@ public class PantallaJuego implements Screen {
     private Texture txPowerFuel;
     private Texture txPowerAliado;
 
+    private Boss jefeActivo = null;
+    private Texture txBarraBoss;
+    private Texture txBoss_1;
+
 
     private Sound soundShieldBreak;
     private Sound soundHeal;
@@ -107,11 +111,14 @@ public class PantallaJuego implements Screen {
         soundHeal = Gdx.audio.newSound(Gdx.files.internal("heal.mp3"));
         soundHealerDown = Gdx.audio.newSound(Gdx.files.internal("healerSinBateria.mp3"));
 
+        txBoss_1 = new Texture(Gdx.files.internal("Boss1.png"));
+
         // Crear textura barra
         com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(1, 1, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
         pixmap.setColor(com.badlogic.gdx.graphics.Color.WHITE);
         pixmap.fill();
         txBarra = new Texture(pixmap);
+        txBarraBoss = txBarra;
         pixmap.dispose();
         game.playMusic();
 
@@ -160,6 +167,30 @@ public class PantallaJuego implements Screen {
 
             game.getFont().getData().setScale(1.0f);
             game.getFont().draw(batch, "FUEL", margenX + 5, margenY + 15);
+
+            if (jefeActivo != null && !jefeActivo.estaDestruido()) {
+                float anchoPantalla = 1200;
+                float anchoBarra = 800; // Barra larga
+                float xBarra = (anchoPantalla - anchoBarra) / 2;
+                float yBarra = 750; // Arriba del todo
+
+                // 1. Fondo Rojo Oscuro
+                batch.setColor(0.5f, 0f, 0f, 1f);
+                batch.draw(txBarraBoss, xBarra, yBarra, anchoBarra, 20);
+
+                // 2. Vida Actual (Rojo Brillante)
+                float porcentajeJefe = (float) jefeActivo.getVidaActual() / jefeActivo.getVidaMax();
+                batch.setColor(1f, 0f, 0f, 1f);
+                batch.draw(txBarraBoss, xBarra, yBarra, anchoBarra * porcentajeJefe, 20);
+
+                // Texto del Jefe
+                game.getFont().draw(batch, "MOTHERSHIP OMEGA", xBarra, yBarra + 40);
+
+                // Resetear color
+                batch.setColor(1, 1, 1, 1);
+            }
+
+
         }
 
 
@@ -528,6 +559,27 @@ public class PantallaJuego implements Screen {
      * Ahora mezcla enemigos de T1 y T2 en rondas superiores.
      */
     private void iniciarRonda() {
+        if (jefeActivo != null && !jefeActivo.estaDestruido()) {
+            return;
+        }
+
+        if (ronda % 5 == 0) {
+            // Limpiamos enemigos pendientes para que sea un duelo 1 vs 1
+            enemigosPendientes.clear();
+
+            // Creamos al jefe arriba del todo
+            Boss boss = new Boss(1200/2, 900, txBoss_1, txBalaEnemiga, 500);
+
+            // Lo guardamos en la variable especial y en la lista general
+            jefeActivo = boss;
+            enemigos.add(boss);
+
+            // Ponemos musica de jefe (Opcional si tienes)
+            return; // SALIMOS, no spawneamos nada más
+        }
+
+
+
         // 1. Instanciamos AMBAS factories
         OleadaFactory factoryT1 = new EnemigoT1(txAsteroide, txEnemigo);
         OleadaFactory factoryT2 = new EnemigoT2(txKamikazeS, txTank, txBalaEnemiga);
@@ -562,30 +614,36 @@ public class PantallaJuego implements Screen {
             else {
                 int dado = r.nextInt(100);
 
-                // A. HEALER
-                if (ronda >= 3 && dado < 15 && presupuesto >= 4) {
+
+                if (ronda > 7 && dado < 5 && presupuesto >= 10) {
+                    nuevoEnemigo = new Boss(x, y, txBoss_1, txBalaEnemiga, 150);
+                    costo = 10;
+                }
+
+                // B. HEALER
+                else if (ronda >= 3 && dado < 20 && presupuesto >= 4) {
                     nuevoEnemigo = new EnemigoHealer(x, y, txHealer, soundHeal, soundHealerDown);
                     costo = 4;
                 }
 
-                // B. TANQUE
+                // C. TANQUE
                 else if (dado < 30 && presupuesto >= 3) {
                     nuevoEnemigo = factoryT2.createEnemigoT2(x, y, this); // Tanque
                     costo = 3;
                 }
 
-                // C. KAMIKAZE SUPER
+                // D. KAMIKAZE SUPER
                 else if (dado < 50 && presupuesto >= 2) {
                     nuevoEnemigo = factoryT2.createEnemigoT1(x, y, this); // Kamikaze S
                     costo = 2;
                 }
 
-                // D. KAMIKAZE NORMAL
+                // E. KAMIKAZE NORMAL
                 else if (dado < 75 && presupuesto >= 1) {
                     nuevoEnemigo = factoryT1.createEnemigoT2(x, y, this); // Kamikaze Normal
                     costo = 1;
                 }
-                //E. ASTEROIDE
+                //F. ASTEROIDE
                 else {
                     if (presupuesto >= 1) {
                         nuevoEnemigo = factoryT1.createEnemigoT1(x, y, this); // Asteroide
