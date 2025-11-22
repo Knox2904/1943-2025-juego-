@@ -480,20 +480,18 @@ public class PantallaJuego implements Screen {
 
     /**
      * Método para reiniciar los enemigos sin reiniciar la pantalla.
+     * Ahora mezcla enemigos de T1 y T2 en rondas superiores.
      */
     private void iniciarRonda() {
-        // 1. Configurar Factory según la ronda
-        if (ronda == 1) {
-            factory = new EnemigoT1(txAsteroide, txEnemigo);
-        } else {
-            factory = new EnemigoT2(txKamikazeS, txTank, txBalaEnemiga);
-        }
+        // 1. Instanciamos AMBAS factories para tener acceso a todo el catálogo de enemigos
+        OleadaFactory factoryT1 = new EnemigoT1(txAsteroide, txEnemigo);
+        OleadaFactory factoryT2 = new EnemigoT2(txKamikazeS, txTank, txBalaEnemiga);
 
         // 2. Calcular presupuesto
         Random r = new Random();
         int presupuesto = 10 + ((ronda - 1) * 5);
 
-        // 3. Bucle de compra de enemigos (LA LÓGICA QUE FALTABA)
+        // 3. Bucle de compra de enemigos
         while (presupuesto > 0) {
             float x = r.nextInt(Gdx.graphics.getWidth() - 64);
             float y = Gdx.graphics.getHeight() + 50;
@@ -501,44 +499,71 @@ public class PantallaJuego implements Screen {
             EntidadJuego nuevoEnemigo = null;
             int costo = 0;
 
-            // --- Lógica copiada del constructor ---
+            // --- RONDA 1: Solo enemigos básicos (T1) ---
             if (ronda == 1) {
                 if (r.nextBoolean()) {
-                    nuevoEnemigo = factory.createEnemigoT1(x, y, this); // Asteroide
-                    if (nuevoEnemigo instanceof Ball2) {
-                        Ball2 b = (Ball2) nuevoEnemigo;
-                        float velocidadLoca = 150f + r.nextInt((int) MathUtils.random(500f, 1000f));
-                        float angulo = MathUtils.random(0f, 360f);
-                        b.setXSpeed(MathUtils.cosDeg(angulo) * velocidadLoca);
-                        b.setySpeed(MathUtils.sinDeg(angulo) * velocidadLoca);
-                    }
+                    // 50% Asteroide
+                    nuevoEnemigo = factoryT1.createEnemigoT1(x, y, this);
+                    configurarAsteroide(nuevoEnemigo, r);
                 } else {
-                    nuevoEnemigo = factory.createEnemigoT2(x, y, this); // Kamikaze
+                    // 50% Kamikaze Normal
+                    nuevoEnemigo = factoryT1.createEnemigoT2(x, y, this);
                 }
                 costo = 1;
-            } else {
-                // Ronda 2+
-                int dado = r.nextInt(100);
-                if (dado < 40 && presupuesto >= 3) {
-                    nuevoEnemigo = factory.createEnemigoT2(x, y, this); // Tanque
+            }
+
+            // --- RONDA 2+: Mezcla de todos (T1 y T2) ---
+            else {
+                int dado = r.nextInt(100); // Número entre 0 y 99
+
+                // A. TANQUE (15% prob) - Coste 3
+                if (dado < 15 && presupuesto >= 3) {
+                    nuevoEnemigo = factoryT2.createEnemigoT2(x, y, this);
                     costo = 3;
-                } else if (dado < 70 && presupuesto >= 2) {
-                    nuevoEnemigo = factory.createEnemigoT1(x, y, this); // Kamikaze S
+                }
+                // B. KAMIKAZE SUPER (20% prob) - Coste 2
+                else if (dado < 35 && presupuesto >= 2) {
+                    nuevoEnemigo = factoryT2.createEnemigoT1(x, y, this);
                     costo = 2;
-                } else {
-                    nuevoEnemigo = factory.createEnemigoT1(x, y, this); // Fallback
-                    costo = 2;
-                    if (presupuesto < costo) break;
+                }
+                // C. KAMIKAZE NORMAL (30% prob) - Coste 1
+                else if (dado < 65 && presupuesto >= 1) {
+                    nuevoEnemigo = factoryT1.createEnemigoT2(x, y, this);
+                    costo = 1;
+                }
+                // D. ASTEROIDE (Resto %) - Coste 1
+                else {
+                    // Si no hay presupuesto para los caros, cae aquí también
+                    if (presupuesto >= 1) {
+                        nuevoEnemigo = factoryT1.createEnemigoT1(x, y, this);
+                        configurarAsteroide(nuevoEnemigo, r);
+                        costo = 1;
+                    } else {
+                        break; // No queda presupuesto ni para un asteroide
+                    }
                 }
             }
-            // --------------------------------------
 
+            // Agregar a la lista si se creó
             if (nuevoEnemigo != null) {
                 enemigosPendientes.add(nuevoEnemigo);
                 presupuesto -= costo;
             } else {
-                break;
+                // Si falló la creación por falta de presupuesto específico en el random,
+                // intentamos forzar uno barato o salir
+                if (presupuesto < 1) break;
             }
+        }
+    }
+
+    // He extraído la lógica del asteroide para no repetirla dos veces
+    private void configurarAsteroide(EntidadJuego enemigo, Random r) {
+        if (enemigo instanceof Ball2) {
+            Ball2 b = (Ball2) enemigo;
+            float velocidadLoca = 150f + r.nextInt((int) MathUtils.random(500f, 1000f));
+            float angulo = MathUtils.random(0f, 360f);
+            b.setXSpeed(MathUtils.cosDeg(angulo) * velocidadLoca);
+            b.setySpeed(MathUtils.sinDeg(angulo) * velocidadLoca);
         }
     }
 
