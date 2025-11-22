@@ -16,6 +16,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 
+
 public class PantallaJuego implements Screen {
 
 	private SpaceNavigation game;
@@ -53,6 +54,7 @@ public class PantallaJuego implements Screen {
     private float anuncioRondaTimer = 3.0f;
 
     private Viewport viewport ;
+    private Texture txEscudo;
 
 
 
@@ -74,9 +76,8 @@ public class PantallaJuego implements Screen {
 
         // --- Cargas de Assets (Sonidos y Texturas) ---
         explosionSound = Gdx.audio.newSound(Gdx.files.internal("explosion.ogg"));
-        explosionSound.setVolume(1, 0.25f);
-        // (La música ya la maneja SpaceNavigation, puedes borrar estas líneas de gameMusic)
-        // gameMusic = ...
+
+
 
         powerUpTexture = new Texture(Gdx.files.internal("powerUpDobleTiro.png"));
         texturaAliado = new Texture(Gdx.files.internal("MainShip3.png"));
@@ -86,6 +87,7 @@ public class PantallaJuego implements Screen {
         txBalaEnemiga = new Texture(Gdx.files.internal("Rocket2.png"));
         txTank = new Texture(Gdx.files.internal("tanque 2025.png"));
         txKamikazeS = new Texture(Gdx.files.internal("kamikazeS.png"));
+        txEscudo = new Texture(Gdx.files.internal("shield.png"));
 
         // Crear textura barra
         com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(1, 1, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
@@ -101,7 +103,8 @@ public class PantallaJuego implements Screen {
             Gdx.audio.newSound(Gdx.files.internal("hurt.ogg")),
             new Texture(Gdx.files.internal("Rocket2.png")),
             Gdx.audio.newSound(Gdx.files.internal("pop-sound.mp3")),
-            texturaAliado
+            texturaAliado,
+            txEscudo
         );
 
         // --- INICIAR LA PRIMERA OLEADA ---
@@ -444,6 +447,11 @@ public class PantallaJuego implements Screen {
             case NAVE_ALIADA:
                 p = new PowerUpAliado(x, y, powerUpTexture);
                 break;
+
+            case ESCUDO:
+
+                p = new PowerUpEscudo(x, y, powerUpTexture);
+                break;
         }
 
         if (p != null) {
@@ -463,17 +471,20 @@ public class PantallaJuego implements Screen {
     private int proximaMejora = 250;
 
     private void intentarGenerarPowerUp(float x, float y) {
-        // 1. Probabilidad: 20% de soltar algo (ajusta este 20)
-        if (MathUtils.random(1, 100) <= 20) {
+        // FORMULA: Empieza en 20%. Restamos 0.3% por cada ronda.
+        // Math.max asegura que nunca baje del 5%.
+        float probabilidadBase = 20.0f;
+        float penalizacionPorRonda = (ronda - 1) * 0.3f;
 
-            // 2. Elegir un tipo aleatorio
-            // TipoPowerUp.values() nos da un array con todos los tipos: [MEJORA_ARMA, COMBUSTIBLE, NAVE_ALIADA]
+        float probabilidadActual = Math.max(5.0f, probabilidadBase - penalizacionPorRonda);
+
+
+        //System.out.println("Probabilidad actual en Ronda " + ronda + ": " + probabilidadActual + "%");
+
+        if (MathUtils.random(0, 100) < probabilidadActual) {
             TipoPowerUp[] tipos = TipoPowerUp.values();
             int indiceRandom = MathUtils.random(0, tipos.length - 1);
-            TipoPowerUp tipoElegido = tipos[indiceRandom];
-
-            // 3. Crear el PowerUp
-            crearPowerUpEn(x, y, tipoElegido);
+            crearPowerUpEn(x, y, tipos[indiceRandom]);
         }
     }
 
@@ -493,88 +504,113 @@ public class PantallaJuego implements Screen {
      * Ahora mezcla enemigos de T1 y T2 en rondas superiores.
      */
     private void iniciarRonda() {
-        // 1. Instanciamos AMBAS factories para tener acceso a todo el catálogo de enemigos
+        // 1. Instanciamos AMBAS factories
         OleadaFactory factoryT1 = new EnemigoT1(txAsteroide, txEnemigo);
         OleadaFactory factoryT2 = new EnemigoT2(txKamikazeS, txTank, txBalaEnemiga);
 
-        // 2. Calcular presupuesto
+        // OBTENEMOS EL MULTIPLICADOR (Ej: 1.0 en ronda 1, 5.0 en ronda 40)
+        float dificultad = getFactorDificultad();
+
         Random r = new Random();
         int presupuesto = 10 + ((ronda - 1) * 5);
 
-        // 3. Bucle de compra de enemigos
         while (presupuesto > 0) {
+            // Usamos viewport.getWorldWidth() para que nazcan dentro del mundo lógico
             float x = r.nextInt((int)viewport.getWorldWidth() - 64);
-            float y = Gdx.graphics.getHeight() + 50;
+            float y = Gdx.graphics.getHeight() + 50; // Ojo: Aquí podrías usar 800 + 50 si usas Viewport
 
             EntidadJuego nuevoEnemigo = null;
             int costo = 0;
 
-            // --- RONDA 1: Solo enemigos básicos (T1) ---
+            // --- RONDA 1 ---
             if (ronda == 1) {
                 if (r.nextBoolean()) {
-                    // 50% Asteroide
                     nuevoEnemigo = factoryT1.createEnemigoT1(x, y, this);
-                    configurarAsteroide(nuevoEnemigo, r);
+                    // MODIFICADO: Le pasamos 'dificultad' al metodo del asteroide
+                    configurarAsteroide(nuevoEnemigo, r, dificultad);
                 } else {
-                    // 50% Kamikaze Normal
                     nuevoEnemigo = factoryT1.createEnemigoT2(x, y, this);
                 }
                 costo = 1;
             }
 
-            // --- RONDA 2+: Mezcla de todos (T1 y T2) ---
+            // --- RONDA 2+ ---
             else {
-                int dado = r.nextInt(100); // Número entre 0 y 99
+                int dado = r.nextInt(100);
 
-                // A. TANQUE (15% prob) - Coste 3
                 if (dado < 15 && presupuesto >= 3) {
-                    nuevoEnemigo = factoryT2.createEnemigoT2(x, y, this);
+                    nuevoEnemigo = factoryT2.createEnemigoT2(x, y, this); // Tanque
                     costo = 3;
                 }
-                // B. KAMIKAZE SUPER (20% prob) - Coste 2
                 else if (dado < 35 && presupuesto >= 2) {
-                    nuevoEnemigo = factoryT2.createEnemigoT1(x, y, this);
+                    nuevoEnemigo = factoryT2.createEnemigoT1(x, y, this); // Kamikaze S
                     costo = 2;
                 }
-                // C. KAMIKAZE NORMAL (30% prob) - Coste 1
                 else if (dado < 65 && presupuesto >= 1) {
-                    nuevoEnemigo = factoryT1.createEnemigoT2(x, y, this);
+                    nuevoEnemigo = factoryT1.createEnemigoT2(x, y, this); // Kamikaze Normal
                     costo = 1;
                 }
-                // D. ASTEROIDE (Resto %) - Coste 1
                 else {
-                    // Si no hay presupuesto para los caros, cae aquí también
                     if (presupuesto >= 1) {
-                        nuevoEnemigo = factoryT1.createEnemigoT1(x, y, this);
-                        configurarAsteroide(nuevoEnemigo, r);
+                        nuevoEnemigo = factoryT1.createEnemigoT1(x, y, this); // Asteroide
+                        // MODIFICADO: Le pasamos 'dificultad'
+                        configurarAsteroide(nuevoEnemigo, r, dificultad);
                         costo = 1;
                     } else {
-                        break; // No queda presupuesto ni para un asteroide
+                        break;
                     }
                 }
             }
 
-            // Agregar a la lista si se creó
+            // --- APLICAR LA DIFICULTAD A LOS ENEMIGOS INTELIGENTES ---
             if (nuevoEnemigo != null) {
+
+                // Si es Kamikaze, KamikazeS o Tanque (y si implementaste aumentarDificultad en ellos)
+                if (nuevoEnemigo instanceof Kamikaze) {
+                    ((Kamikaze) nuevoEnemigo).aumentarDificultad(dificultad);
+                }
+                else if (nuevoEnemigo instanceof KamikazeS) {
+                    ((KamikazeS) nuevoEnemigo).aumentarDificultad(dificultad);
+                }
+                // Si tienes clase Tanque, agrégala aquí también:
+                else if (nuevoEnemigo instanceof NaveTanque) { ((NaveTanque)nuevoEnemigo).aumentarDificultad(dificultad); }
+
                 enemigosPendientes.add(nuevoEnemigo);
                 presupuesto -= costo;
             } else {
-                // Si falló la creación por falta de presupuesto específico en el random,
-                // intentamos forzar uno barato o salir
                 if (presupuesto < 1) break;
             }
         }
     }
 
-    // He extraído la lógica del asteroide para no repetirla dos veces
-    private void configurarAsteroide(EntidadJuego enemigo, Random r) {
+
+    // MODIFICADO: Ahora recibe el float dificultad
+    private void configurarAsteroide(EntidadJuego enemigo, Random r, float dificultad) {
         if (enemigo instanceof Ball2) {
             Ball2 b = (Ball2) enemigo;
-            float velocidadLoca = 150f + r.nextInt((int) MathUtils.random(500f, 1000f));
+
+            // Velocidad base aleatoria
+            float velocidadBase = 150f + r.nextInt((int) MathUtils.random(500f, 1000f));
+
+            // APLICAMOS EL MULTIPLICADOR
+            float velocidadFinal = velocidadBase * dificultad;
+
+            // (Opcional) Tope máximo para que no atraviesen paredes si es ronda 100
+            if (velocidadFinal > 1200f) velocidadFinal = 1200f;
+
             float angulo = MathUtils.random(0f, 360f);
-            b.setXSpeed(MathUtils.cosDeg(angulo) * velocidadLoca);
-            b.setySpeed(MathUtils.sinDeg(angulo) * velocidadLoca);
+            b.setXSpeed(MathUtils.cosDeg(angulo) * velocidadFinal);
+            b.setySpeed(MathUtils.sinDeg(angulo) * velocidadFinal);
         }
+    }
+
+    // Calcula un multiplicador basado en la ronda.
+    // Ronda 1 = 1.0 (Normal)
+    // Ronda 10 = 1.9 (Casi doble velocidad)
+    // Ronda 48 = 5.7 (Suerte)
+    public float getFactorDificultad() {
+        // Aumenta un 10% la dificultad por ronda
+        return 1.0f + ((ronda - 1) * 0.1f);
     }
 
 

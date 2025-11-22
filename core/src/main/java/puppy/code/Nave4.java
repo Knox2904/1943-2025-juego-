@@ -33,14 +33,17 @@ public class Nave4 extends GameObject implements IDestruible {
     private float stateTime = 0;
 
     private int nivelArma = 0;
-    private final int MAX_NIVEL_ARMA = 2;
+    private final int MAX_NIVEL_ARMA = 4;
     private IFireStrategy fireStrategy;
 
     private ArrayList<SideShip> aliados = new ArrayList<>();
     private float fireRateBase = 0.2f;
     private float fireTimer = 0f;
 
-    public Nave4(float x, float y, Texture tx, Sound soundChoque, Texture txBala, Sound soundBala, Texture txAliado) {
+    private boolean tieneEscudo = false;
+    private Texture txEscudo;
+
+    public Nave4(float x, float y, Texture tx, Sound soundChoque, Texture txBala, Sound soundBala, Texture txAliado , Texture txEscudo) {
         super(x, y, tx);
         sonidoHerido = soundChoque;
         this.soundBala = soundBala;
@@ -51,6 +54,7 @@ public class Nave4 extends GameObject implements IDestruible {
         spr.setBounds(x, y, 45, 45);
         this.fireStrategy = new OffsetFireStrategy(new float[]{0f});
         this.txAliado = txAliado;
+        this.txEscudo = txEscudo;
     }
 
     // --- LÓGICA UNIFICADA DE UPDATE ---
@@ -162,6 +166,17 @@ public class Nave4 extends GameObject implements IDestruible {
 
         spr.draw(batch);
 
+        if (tieneEscudo) {
+
+            float escudoX = spr.getX() + (spr.getWidth() - txEscudo.getWidth()) / 2;
+            float escudoY = spr.getY() + (spr.getHeight() - txEscudo.getHeight()) / 2;
+
+            // Un poco de transparencia para que se vea elegante
+            batch.setColor(1, 1, 1, 0.7f);
+            batch.draw(txEscudo, escudoX, escudoY);
+            batch.setColor(1, 1, 1, 1); // Restaurar color normal
+        }
+
         for (SideShip aliado : aliados) {
             aliado.draw(batch);
         }
@@ -183,17 +198,32 @@ public class Nave4 extends GameObject implements IDestruible {
 
         if (herido) return;
 
+        if (tieneEscudo) {
+            tieneEscudo = false;
+            // Opcional: Podrías reproducir un sonido de "Shield Break" aquí
 
-        // Resta la cantidad correcta
+            herido = true;
+            tiempoHerido = tiempoHeridoMax;
+            return;
+        }
+
+
+        // --- SI NO TIENE ESCUDO (Daño Real) ---
+
         combustible -= cantidad;
-
         herido = true;
         tiempoHerido = tiempoHeridoMax;
         sonidoHerido.play();
 
-        // Resetea poder al ser golpeado (penalización)
-        nivelArma = 0;
-        fireStrategy = new OffsetFireStrategy(new float[]{0f});
+        // 4. LÓGICA DE ARMA MÁS JUSTA (Bajar solo 1 nivel)
+        if (nivelArma > 0) {
+            nivelArma--; // Bajamos solo 1
+            actualizarEstrategiaDisparo(); // Actualizamos la forma de disparar
+        } else {
+            // Si ya estaba en 0, se queda en 0
+            nivelArma = 0;
+            actualizarEstrategiaDisparo();
+        }
 
         if (combustible <= 0) {
             combustible = 0;
@@ -219,18 +249,12 @@ public class Nave4 extends GameObject implements IDestruible {
     // --- Métodos de Lógica de Juego ---
 
     public void mejorarArma(PantallaJuego juego) {
-        nivelArma++;
-        switch (nivelArma) {
-            case 1: // Nivel 1: Doble
-                fireStrategy = new OffsetFireStrategy(new float[]{-10f, 10f});
-                break;
-            case 2: // Nivel 2: Triple
-                fireStrategy = new OffsetFireStrategy(new float[]{-15f, 0f, 15f});
-                break;
-            default: // Maximo alcanzado
-                nivelArma = MAX_NIVEL_ARMA;
-                juego.agregarScore(100);
-                break;
+        if (nivelArma < MAX_NIVEL_ARMA) {
+            nivelArma++;
+            actualizarEstrategiaDisparo(); // <--- Aquí reutilizamos la lógica
+        } else {
+            // Si ya está al máximo, damos puntos
+            juego.agregarScore(100);
         }
     }
 
@@ -265,4 +289,36 @@ public class Nave4 extends GameObject implements IDestruible {
     public int getY() { return (int) spr.getY(); }
     public float getMaxCombustible() { return this.MAX_COMBUSTIBLE; }
     public float getCombustible() { return this.combustible; }
+
+    public void activarEscudo() {
+        this.tieneEscudo = true;
+    }
+
+    private void actualizarEstrategiaDisparo() {
+        switch (nivelArma) {
+            case 0: // Nivel 0: 1 Bala (Centro)
+                fireStrategy = new OffsetFireStrategy(new float[]{0f});
+                break;
+
+            case 1: // Nivel 1: 2 Balas (Separadas)
+                fireStrategy = new OffsetFireStrategy(new float[]{-10f, 10f});
+                break;
+
+            case 2: // Nivel 2: 3 Balas (Izquierda, Centro, Derecha)
+                fireStrategy = new OffsetFireStrategy(new float[]{-15f, 0f, 15f});
+                break;
+
+            case 3: // Nivel 3: 4 Balas (Sin centro, muy ancho)
+                // Offset: -20, -6, 6, 20
+                fireStrategy = new OffsetFireStrategy(new float[]{-20f, -6f, 6f, 20f});
+                break;
+
+            case 4: // Nivel 4: 5 Balas (Muro de fuego)
+            default: // Para cualquier nivel superior
+                // Offset: -24, -12, 0, 12, 24
+                fireStrategy = new OffsetFireStrategy(new float[]{-24f, -12f, 0f, 12f, 24f});
+                break;
+        }
+    }
+
 }

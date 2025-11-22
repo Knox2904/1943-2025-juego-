@@ -19,6 +19,8 @@ public class KamikazeS extends EntidadJuego {
     private float fireTimer = 0;
     private Texture txBala;
 
+    private float multiplicadorDificultad = 1.0f;
+
     public KamikazeS(float x, float y, Nave4 naveObjetivo, Texture tx, Texture txBala, float velocidad) {
         super(tx, x, y, velocidad, 2); // Vida 2
         this.txBala = txBala;
@@ -85,7 +87,16 @@ public class KamikazeS extends EntidadJuego {
 
         // --- DISPARO ---
         fireTimer += delta;
-        if (fireTimer > 0.8f) { // Dispara rápido
+
+        // FORMULA: El tiempo entre disparos se divide por la dificultad.
+        // Si dificultad es 1.0 -> dispara cada 0.8 seg
+        // Si dificultad es 2.0 -> dispara cada 0.4 seg (el doble de rápido)
+        float tiempoEntreDisparos = 0.8f / multiplicadorDificultad;
+
+        //Que nunca dispare más rápido que 0.2s (para no colapsar el juego)
+        if (tiempoEntreDisparos < 0.2f) tiempoEntreDisparos = 0.2f;
+
+        if (fireTimer > tiempoEntreDisparos) {
             fireTimer = 0;
             dispararAlJugador(juego);
         }
@@ -128,6 +139,14 @@ public class KamikazeS extends EntidadJuego {
         );
 
         return hitbox;
+    }
+
+    public void aumentarDificultad(float factor) {
+        this.multiplicadorDificultad = factor; // Guardamos el factor para el disparo
+        this.velocidadPEI *= factor;           // Aumentamos la velocidad de vuelo
+
+        // Tope de velocidad
+        if (this.velocidadPEI > 900) this.velocidadPEI = 900;
     }
 
 

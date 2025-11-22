@@ -108,5 +108,15 @@ public class Kamikaze extends EntidadJuego {
         return hitbox;
     }
 
+    public void aumentarDificultad(float factor) {
+        // Aumentamos su velocidad de movimiento
+        this.velocidadPEI *= factor;
+
+        //límite para que no se teletransporte si la ronda es muy alta
+        if (this.velocidadPEI > 800) {
+            this.velocidadPEI = 800;
+        }
+    }
+
 
 }

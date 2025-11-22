@@ -10,6 +10,8 @@ public class NaveTanque extends EntidadJuego {
     private Texture txBala;
     private boolean enPosicion = false;
 
+    private float tiempoEntreDisparos = 2.0f;
+
     public NaveTanque(float x, float y, Texture tx, Texture txBala) {
         // Velocidad lenta: 80, Vida ALTA: 10
         super(tx, x, y, 80f, 10);
@@ -36,16 +38,11 @@ public class NaveTanque extends EntidadJuego {
         // 2. Disparo
         if (enPosicion) {
             fireTimer += delta;
-            if (fireTimer > 2.0f) {
+
+
+            if (fireTimer > tiempoEntreDisparos) {
                 fireTimer = 0;
-
-                // Calculamos el centro para disparar
-                float balaX = position.x + spr.getWidth()/2 - 5;
-                float balaY = position.y  + 50 ; // Ajuste para que salga del cañón
-
-                juego.agregarBalaEnemiga(new Bullet(balaX, balaY, 0, -5f, txBala));
-                juego.agregarBalaEnemiga(new Bullet(balaX, balaY, 2f, -4f, txBala));
-                juego.agregarBalaEnemiga(new Bullet(balaX, balaY, -2f, -4f, txBala));
+                disparar(juego);
             }
         }
     }
@@ -65,6 +62,30 @@ public class NaveTanque extends EntidadJuego {
     }
 
 
+    public void aumentarDificultad(float factor) {
+        // 1. Velocidad de Movimiento (Sube poco, el tanque es pesado)
+        this.velocidadPEI *= (1 + (factor - 1) * 0.3f);
 
+        // 2. Vida
+        this.vidaActual = (int) (this.vidaActual * factor);
+
+        // 3. Cadencia de Disparo (Reducimos el tiempo entre disparos)
+        // Si factor es 2.0 (doble dificultad), disparará cada 1.0 segundo.
+        this.tiempoEntreDisparos = 2.0f / factor;
+
+        // Tope de seguridad: Que no dispare mas rápido que una ametralladora (0.5s)
+        if (this.tiempoEntreDisparos < 0.5f) {
+            this.tiempoEntreDisparos = 0.5f;
+        }
+    }
+
+    private void disparar(PantallaJuego juego) {
+        float balaX = position.x + spr.getWidth()/2 - 5;
+        float balaY = position.y + 50;
+
+        juego.agregarBalaEnemiga(new Bullet(balaX, balaY, 0, -5f, txBala));   // Centro
+        juego.agregarBalaEnemiga(new Bullet(balaX, balaY, 2f, -4f, txBala));  // Derecha
+        juego.agregarBalaEnemiga(new Bullet(balaX, balaY, -2f, -4f, txBala)); // Izquierda
+    }
 
 }
