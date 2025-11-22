@@ -42,8 +42,9 @@ public class Nave4 extends GameObject implements IDestruible {
 
     private boolean tieneEscudo = false;
     private Texture txEscudo;
+    private Sound soundShieldBreak;
 
-    public Nave4(float x, float y, Texture tx, Sound soundChoque, Texture txBala, Sound soundBala, Texture txAliado , Texture txEscudo) {
+    public Nave4(float x, float y, Texture tx, Sound soundChoque, Texture txBala, Sound soundBala, Texture txAliado , Texture txEscudo , Sound soundShieldBreak) {
         super(x, y, tx);
         sonidoHerido = soundChoque;
         this.soundBala = soundBala;
@@ -55,6 +56,7 @@ public class Nave4 extends GameObject implements IDestruible {
         this.fireStrategy = new OffsetFireStrategy(new float[]{0f});
         this.txAliado = txAliado;
         this.txEscudo = txEscudo;
+        this.soundShieldBreak = soundShieldBreak;
     }
 
     // --- LÓGICA UNIFICADA DE UPDATE ---
@@ -118,13 +120,21 @@ public class Nave4 extends GameObject implements IDestruible {
         // -------------------------------------------------
         if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
             if (fireTimer <= 0f) {
-                float spawnX = spr.getX() + spr.getWidth() / 2 - 5;
-                float spawnY = spr.getY() + spr.getHeight() - 5;
+                float spawnX = spr.getX() + spr.getWidth() / 2;
+                float spawnY = spr.getY() + spr.getHeight();
 
-                fireStrategy.fire(juego, txBala, spawnX, spawnY);
+                // --- CALCULAR DAÑO ---
+                int dañoBase = 1;
+                int dañoExtra = BuffManager.getInstance().getDamageBuff();
+                int dañoTotal = dañoBase + dañoExtra;
+
+                // --- PASAR DAÑO A LA ESTRATEGIA ---
+                fireStrategy.fire(juego, txBala, spawnX, spawnY, dañoTotal);
                 soundBala.play(0.25f);
 
                 float fireRateMod = BuffManager.getInstance().getFireRateModifier();
+
+
                 float fireRateActual = fireRateBase / fireRateMod;
                 fireTimer = fireRateActual;
             }
@@ -140,6 +150,9 @@ public class Nave4 extends GameObject implements IDestruible {
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_9)) {
             juego.crearPowerUpEn(position.x, position.y + 100, TipoPowerUp.NAVE_ALIADA);
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_8)) {
+            juego.crearPowerUpEn(position.x, position.y + 100, TipoPowerUp.ESCUDO);
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.L)) {
             juego.mostrarPantallaMejoras();
@@ -167,14 +180,22 @@ public class Nave4 extends GameObject implements IDestruible {
         spr.draw(batch);
 
         if (tieneEscudo) {
+            // 1. Definimos un tamaño manual
+            float anchoEscudo = 70f;
+            float altoEscudo = 35f;
 
-            float escudoX = spr.getX() + (spr.getWidth() - txEscudo.getWidth()) / 2;
-            float escudoY = spr.getY() + (spr.getHeight() - txEscudo.getHeight()) / 2;
+            // 2. Calculamos el centro
+            // Fórmula: PosNave + (MitadNave - MitadEscudo)
+            float escudoX = spr.getX() + (spr.getWidth() - anchoEscudo) / 2;
+            float escudoY = spr.getY() + (spr.getHeight() - altoEscudo) / 2;
 
-            // Un poco de transparencia para que se vea elegante
-            batch.setColor(1, 1, 1, 0.7f);
-            batch.draw(txEscudo, escudoX, escudoY);
-            batch.setColor(1, 1, 1, 1); // Restaurar color normal
+            // Transparencia (0.5f es 50% transparente)
+            batch.setColor(1, 1, 1, 0.5f);
+
+            // 3. Usamos el método draw que acepta ANCHO y ALTO al final
+            batch.draw(txEscudo, escudoX, escudoY, anchoEscudo, altoEscudo);
+
+            batch.setColor(1, 1, 1, 1); // Restaurar color
         }
 
         for (SideShip aliado : aliados) {
@@ -200,8 +221,7 @@ public class Nave4 extends GameObject implements IDestruible {
 
         if (tieneEscudo) {
             tieneEscudo = false;
-            // Opcional: Podrías reproducir un sonido de "Shield Break" aquí
-
+            soundShieldBreak.play(1.0f);
             herido = true;
             tiempoHerido = tiempoHeridoMax;
             return;
@@ -249,7 +269,10 @@ public class Nave4 extends GameObject implements IDestruible {
     // --- Métodos de Lógica de Juego ---
 
     public void mejorarArma(PantallaJuego juego) {
-        if (nivelArma < MAX_NIVEL_ARMA) {
+
+        int limiteTecnologico = BuffManager.getInstance().getMaxWeaponLevel();
+
+        if (nivelArma < MAX_NIVEL_ARMA && nivelArma < limiteTecnologico) {
             nivelArma++;
             actualizarEstrategiaDisparo(); // <--- Aquí reutilizamos la lógica
         } else {
@@ -296,27 +319,27 @@ public class Nave4 extends GameObject implements IDestruible {
 
     private void actualizarEstrategiaDisparo() {
         switch (nivelArma) {
-            case 0: // Nivel 0: 1 Bala (Centro)
-                fireStrategy = new OffsetFireStrategy(new float[]{0f});
+            case 0:
+                // Nivel 0: Recto hacia arriba (90 grados)
+                fireStrategy = new FanFireStrategy(new float[]{90f});
                 break;
-
-            case 1: // Nivel 1: 2 Balas (Separadas)
-                fireStrategy = new OffsetFireStrategy(new float[]{-10f, 10f});
+            case 1:
+                // Nivel 1: Dos balas paralelas (usamos la Offset antigua o Fan recto)
+                // Queda mejor usar OffsetFireStrategy aquí para que salgan de las alas
+                fireStrategy = new OffsetFireStrategy(new float[]{-15f, 15f});
                 break;
-
-            case 2: // Nivel 2: 3 Balas (Izquierda, Centro, Derecha)
-                fireStrategy = new OffsetFireStrategy(new float[]{-15f, 0f, 15f});
+            case 2:
+                // Nivel 2: Abanico suave (85, 90, 95 grados)
+                fireStrategy = new FanFireStrategy(new float[]{85f, 90f, 95f});
                 break;
-
-            case 3: // Nivel 3: 4 Balas (Sin centro, muy ancho)
-                // Offset: -20, -6, 6, 20
-                fireStrategy = new OffsetFireStrategy(new float[]{-20f, -6f, 6f, 20f});
+            case 3:
+                // Nivel 3: Abanico ancho (80, 85, 95, 100)
+                fireStrategy = new FanFireStrategy(new float[]{80f, 85f, 95f, 100f});
                 break;
-
-            case 4: // Nivel 4: 5 Balas (Muro de fuego)
-            default: // Para cualquier nivel superior
-                // Offset: -24, -12, 0, 12, 24
-                fireStrategy = new OffsetFireStrategy(new float[]{-24f, -12f, 0f, 12f, 24f});
+            case 4:
+            default:
+                // Nivel 4: Super Escopeta
+                fireStrategy = new FanFireStrategy(new float[]{75f, 82f, 90f, 98f, 105f});
                 break;
         }
     }

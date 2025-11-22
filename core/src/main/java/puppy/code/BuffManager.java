@@ -10,6 +10,7 @@ public class BuffManager {
         this.playerSpeedModifier = 1.0f;
         this.fireRateModifier = 1.0f;
         this.extraDamage = 0;
+        this.maxWeaponLevel = 1;
     }
 
     //método público para OBTENER la instancia
@@ -25,6 +26,7 @@ public class BuffManager {
     private float playerSpeedModifier;
     private float fireRateModifier;
     private int extraDamage;
+    private int maxWeaponLevel;
 
     // --- Variables de Enemigos ---
     private float enemySpeedMultiplier = 1.0f;
@@ -36,17 +38,14 @@ public class BuffManager {
     public float getPlayerSpeedModifier() {
         return playerSpeedModifier;
     }
-
     public float getFireRateModifier() {
         return fireRateModifier;
     }
-
     public int getExtraDamage() {
         return this.extraDamage;
     }
 
     public float getEnemySpeedMultiplier() { return enemySpeedMultiplier; }
-
     public float getEnemySpawnRateMultiplier() { return enemySpawnRateMultiplier; }
 
     // --- Método Setter ---
@@ -65,6 +64,10 @@ public class BuffManager {
                 break;
             case DAÑO_EXTRA:
                 this.extraDamage += 1; // Daño + 1
+            case EXPANSION_CANON:
+                this.maxWeaponLevel++;
+
+                if (this.maxWeaponLevel > 4) this.maxWeaponLevel = 4;
                 break;
         }
         increaseDifficulty();
@@ -89,6 +92,7 @@ public class BuffManager {
         this.playerSpeedModifier = 1.0f;
         this.fireRateModifier = 1.0f;
         this.extraDamage = 0;
+        this.maxWeaponLevel = 1;
 
         // --- Resetea Enemigos  ---
         this.enemySpeedMultiplier = 1.0f;
@@ -96,4 +100,13 @@ public class BuffManager {
 
 
     }
+
+    public int getDamageBuff() {
+        return this.extraDamage;
+    }
+    public int getMaxWeaponLevel() {
+        return this.maxWeaponLevel;
+    }
+
+
 }

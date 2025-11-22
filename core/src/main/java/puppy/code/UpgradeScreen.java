@@ -72,6 +72,7 @@ public class UpgradeScreen implements Screen {
         todasLasMejoras.add(new UpgradeCard("Motor Mejorado", "+10% Velocidad", TipoMejora.VELOCIDAD_JUGADOR));
         todasLasMejoras.add(new UpgradeCard("Cadencia Aumentada", "+15% Disparo", TipoMejora.CADENCIA_DISPARO));
         todasLasMejoras.add(new UpgradeCard("Munición Potenciada", "+1 Daño", TipoMejora.DAÑO_EXTRA));
+        todasLasMejoras.add(new UpgradeCard("Tecnología de Arma", "Desbloquea nuevos cañones", TipoMejora.EXPANSION_CANON));
         // Agrega más si tienes...
     }
 
@@ -123,7 +124,7 @@ public class UpgradeScreen implements Screen {
             UpgradeCard card = opcionesActuales[i];
 
             // Dibujar un borde simple (opcional, ayuda a ver dónde hacer clic)
-            // batch.draw(texturaTarjeta, box.x, box.y, box.width, box.height);
+            //batch.draw(texturaTarjeta, box.x, box.y, box.width, box.height);
 
             font.setColor(Color.CYAN);
             font.draw(batch, card.getTitulo(), box.x, box.y + box.height - 20, box.width, 1, true);

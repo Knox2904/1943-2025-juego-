@@ -42,4 +42,13 @@ public abstract class GameObject {
         hitbox.setPosition(position.x, position.y);
         return hitbox;
     }
+
+    public float getWidth() {
+        return spr.getWidth();
+    }
+
+    public float getHeight() {
+        return spr.getHeight();
+    }
+
 }

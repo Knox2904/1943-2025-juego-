@@ -2,6 +2,7 @@ package puppy.code;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 
 public class NaveTanque extends EntidadJuego {
@@ -35,7 +36,30 @@ public class NaveTanque extends EntidadJuego {
         }
         spr.setPosition(position.x, position.y);
 
-        // 2. Disparo
+        // --- 2. LÓGICA DE ROTACIÓN (QUE TE MIRE) ---
+        Nave4 jugador = juego.getNave();
+
+        // Calculamos los centros
+        float myCenterX = position.x + spr.getWidth() / 2;
+        float myCenterY = position.y + spr.getHeight() / 2;
+
+        float playerCenterX = jugador.getX() + jugador.getHitbox().width / 2;
+        float playerCenterY = jugador.getY() + jugador.getHitbox().height / 2;
+
+        // Calculamos la diferencia
+        float diffX = playerCenterX - myCenterX;
+        float diffY = playerCenterY - myCenterY;
+
+        // Obtenemos el ángulo
+        float angleRad = MathUtils.atan2(diffY, diffX);
+        float angleDeg = angleRad * MathUtils.radiansToDegrees;
+
+        // Aplicamos la rotación (-90 asumiendo que tu imagen original mira hacia arriba)
+        spr.setRotation(angleDeg + 90);
+
+
+
+        // 3. Disparo
         if (enPosicion) {
             fireTimer += delta;
 
@@ -45,6 +69,16 @@ public class NaveTanque extends EntidadJuego {
                 disparar(juego);
             }
         }
+
+        // 4. Feedback de Golpe
+        if (enHit) {
+            tiempoHit -= delta;
+            if (tiempoHit <= 0) {
+                enHit = false;
+                this.spr.setColor(1, 1, 1, 1); // Volver a Blanco (Normal)
+            }
+        }
+
     }
 
     @Override
@@ -80,12 +114,43 @@ public class NaveTanque extends EntidadJuego {
     }
 
     private void disparar(PantallaJuego juego) {
-        float balaX = position.x + spr.getWidth()/2 - 5;
-        float balaY = position.y + 50;
+        // 1. Obtener posiciones (Origen y Destino)
+        Nave4 jugador = juego.getNave();
 
-        juego.agregarBalaEnemiga(new Bullet(balaX, balaY, 0, -5f, txBala));   // Centro
-        juego.agregarBalaEnemiga(new Bullet(balaX, balaY, 2f, -4f, txBala));  // Derecha
-        juego.agregarBalaEnemiga(new Bullet(balaX, balaY, -2f, -4f, txBala)); // Izquierda
+        // Origen: El centro del Tanque
+        float origenX = this.position.x + spr.getWidth() / 2;
+        float origenY = this.position.y + spr.getHeight() / 2; // O +20 si quieres que salga de la boca
+
+        // Destino: El centro del Jugador
+        float destinoX = jugador.getX() + jugador.getHitbox().width / 2;
+        float destinoY = jugador.getY() + jugador.getHitbox().height / 2;
+
+        // 2. Calcular el ángulo base hacia el jugador
+        float deltaX = destinoX - origenX;
+        float deltaY = destinoY - origenY;
+
+        // MathUtils.atan2 nos da el ángulo en Radianes
+        float anguloRad = MathUtils.atan2(deltaY, deltaX);
+
+        // Convertimos a Grados para poder sumar/restar el offset de las balas laterales
+        float anguloGrados = anguloRad * MathUtils.radiansToDegrees;
+
+        // Velocidad de las balas del tanque
+        float velocidadBala = 7f;
+
+        // 3. Disparar las 3 balas usando ese ángulo
+        crearBalaDirigida(juego, origenX, origenY, anguloGrados, velocidadBala);       // Central (Directa)
+        crearBalaDirigida(juego, origenX, origenY, anguloGrados - 15f, velocidadBala); // Derecha
+        crearBalaDirigida(juego, origenX, origenY, anguloGrados + 15f, velocidadBala); // Izquierda
+    }
+
+    private void crearBalaDirigida(PantallaJuego juego, float x, float y, float anguloGrados, float velocidad) {
+
+        float velX = velocidad * MathUtils.cosDeg(anguloGrados);
+        float velY = velocidad * MathUtils.sinDeg(anguloGrados);
+
+
+        juego.agregarBalaEnemiga(new Bullet(x, y, velX, velY, txBala));
     }
 
 }

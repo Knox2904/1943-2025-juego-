@@ -13,6 +13,8 @@ public abstract class EntidadJuego extends GameObject implements IDestruible {
     protected boolean destroyed = false;
     protected float velocidadPEI;
     protected int vidaActual;
+    protected boolean enHit = false;
+    protected float tiempoHit = 0;
 
     // Constructor base
     public EntidadJuego(Texture tx, float x, float y, float velocidad, int vidaI) {
@@ -34,6 +36,11 @@ public abstract class EntidadJuego extends GameObject implements IDestruible {
         if(estaDestruido())return;
 
         this.vidaActual -= cantidad;
+
+        this.enHit = true;
+        this.tiempoHit = 0.1f;
+        this.spr.setColor(1, 0, 0, 1);
+
         if(this.vidaActual <= 0){
             this.vidaActual = 0;
             this.destruir();
@@ -66,5 +73,13 @@ public abstract class EntidadJuego extends GameObject implements IDestruible {
 
     public float getY() {
         return this.position.y;
+    }
+
+    public void curar(int cantidad) {
+        this.vidaActual += cantidad;
+        // Efecto visual verde al curarse
+        this.spr.setColor(0, 1, 0, 1);
+        this.enHit = true;
+        this.tiempoHit = 0.2f;
     }
 }

@@ -44,7 +44,8 @@ public class PantallaJuego implements Screen {
     private Texture txEnemigo; // Textura para el kamikaze
     private Texture txBalaEnemiga;
     private Texture txTank;
-    private Texture txKamikazeS; // Nuevo
+    private Texture txKamikazeS;
+    private Texture txHealer;// Nuevo
     private OleadaFactory factory;
     //  Variables añadidas
     private ArrayList<EntidadJuego> enemigos = new ArrayList<>();
@@ -55,6 +56,14 @@ public class PantallaJuego implements Screen {
 
     private Viewport viewport ;
     private Texture txEscudo;
+    private Texture txPowerAmmo;
+    private Texture txPowerFuel;
+    private Texture txPowerAliado;
+
+
+    private Sound soundShieldBreak;
+    private Sound soundHeal;
+    private Sound soundHealerDown;
 
 
 
@@ -87,7 +96,16 @@ public class PantallaJuego implements Screen {
         txBalaEnemiga = new Texture(Gdx.files.internal("Rocket2.png"));
         txTank = new Texture(Gdx.files.internal("tanque 2025.png"));
         txKamikazeS = new Texture(Gdx.files.internal("kamikazeS.png"));
-        txEscudo = new Texture(Gdx.files.internal("shield.png"));
+        txHealer = new Texture(Gdx.files.internal("healer.png"));
+
+        txEscudo = new Texture(Gdx.files.internal("escudo.png"));
+        txPowerFuel = new Texture(Gdx.files.internal("vida.png"));
+        txPowerAliado = new Texture(Gdx.files.internal("companion.png"));
+
+
+        soundShieldBreak = Gdx.audio.newSound(Gdx.files.internal("escudoRopiendose.mp3"));
+        soundHeal = Gdx.audio.newSound(Gdx.files.internal("heal.mp3"));
+        soundHealerDown = Gdx.audio.newSound(Gdx.files.internal("healerSinBateria.mp3"));
 
         // Crear textura barra
         com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(1, 1, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
@@ -104,7 +122,8 @@ public class PantallaJuego implements Screen {
             new Texture(Gdx.files.internal("Rocket2.png")),
             Gdx.audio.newSound(Gdx.files.internal("pop-sound.mp3")),
             texturaAliado,
-            txEscudo
+            txEscudo,
+            soundShieldBreak
         );
 
         // --- INICIAR LA PRIMERA OLEADA ---
@@ -254,7 +273,7 @@ public class PantallaJuego implements Screen {
                     if (!enemigo.estaDestruido()) {
                         if (b.checkCollision(enemigo.getHitbox())) {
                             explosionSound.play(0.35f);
-                            enemigo.recibirHit(1, delta); // Dañar enemigo
+                            enemigo.recibirHit(b.getDamage(), delta); // Dañar enemigo
                             b.recibirHit(1, delta);       // Destruir bala
                             agregarScore(10);
 
@@ -430,6 +449,11 @@ public class PantallaJuego implements Screen {
         this.txEnemigo.dispose();
         this.txAsteroide.dispose();
         this.txTank.dispose();
+        txPowerFuel.dispose();
+        txPowerAliado.dispose();
+        txHealer.dispose();
+        soundHeal.dispose();
+        soundHealerDown.dispose();
 	}
 
     public void crearPowerUpEn(float x, float y, TipoPowerUp tipo) {
@@ -442,15 +466,15 @@ public class PantallaJuego implements Screen {
                 break;
             case COMBUSTIBLE:
 
-                p = new PowerUpCombustible(x, y, powerUpTexture);
+                p = new PowerUpCombustible(x, y, this.txPowerFuel);
                 break;
             case NAVE_ALIADA:
-                p = new PowerUpAliado(x, y, powerUpTexture);
+                p = new PowerUpAliado(x, y, this.txPowerAliado);
                 break;
 
             case ESCUDO:
 
-                p = new PowerUpEscudo(x, y, powerUpTexture);
+                p = new PowerUpEscudo(x, y, this.txEscudo);
                 break;
         }
 
@@ -538,18 +562,30 @@ public class PantallaJuego implements Screen {
             else {
                 int dado = r.nextInt(100);
 
-                if (dado < 15 && presupuesto >= 3) {
+                // A. HEALER
+                if (ronda >= 3 && dado < 15 && presupuesto >= 4) {
+                    nuevoEnemigo = new EnemigoHealer(x, y, txHealer, soundHeal, soundHealerDown);
+                    costo = 4;
+                }
+
+                // B. TANQUE
+                else if (dado < 30 && presupuesto >= 3) {
                     nuevoEnemigo = factoryT2.createEnemigoT2(x, y, this); // Tanque
                     costo = 3;
                 }
-                else if (dado < 35 && presupuesto >= 2) {
+
+                // C. KAMIKAZE SUPER
+                else if (dado < 50 && presupuesto >= 2) {
                     nuevoEnemigo = factoryT2.createEnemigoT1(x, y, this); // Kamikaze S
                     costo = 2;
                 }
-                else if (dado < 65 && presupuesto >= 1) {
+
+                // D. KAMIKAZE NORMAL
+                else if (dado < 75 && presupuesto >= 1) {
                     nuevoEnemigo = factoryT1.createEnemigoT2(x, y, this); // Kamikaze Normal
                     costo = 1;
                 }
+                //E. ASTEROIDE
                 else {
                     if (presupuesto >= 1) {
                         nuevoEnemigo = factoryT1.createEnemigoT1(x, y, this); // Asteroide
@@ -574,6 +610,10 @@ public class PantallaJuego implements Screen {
                 }
                 // Si tienes clase Tanque, agrégala aquí también:
                 else if (nuevoEnemigo instanceof NaveTanque) { ((NaveTanque)nuevoEnemigo).aumentarDificultad(dificultad); }
+
+                else if (nuevoEnemigo instanceof EnemigoHealer) {
+                    ((EnemigoHealer) nuevoEnemigo).aumentarDificultad(dificultad);
+                }
 
                 enemigosPendientes.add(nuevoEnemigo);
                 presupuesto -= costo;
@@ -614,6 +654,9 @@ public class PantallaJuego implements Screen {
     }
 
 
+    public ArrayList<EntidadJuego> getEnemigos() {
+        return this.enemigos;
+    }
 
 
 }

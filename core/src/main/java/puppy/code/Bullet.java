@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.MathUtils;
 
 
 public class Bullet implements IDestruible {
@@ -12,25 +13,32 @@ public class Bullet implements IDestruible {
 	private float ySpeed;
 	private boolean destroyed = false;
 	private Sprite spr;
+    private int damage = 1;
 
 	    public Bullet(float x, float y, float xSpeed, float ySpeed, Texture tx) {
 	    	spr = new Sprite(tx);
-	    	spr.setPosition(x, y);
-	        this.xSpeed = xSpeed;
-	        this.ySpeed = ySpeed;
 
+            spr.setPosition(x, y);
 
+            float anguloRadianes = MathUtils.atan2(ySpeed, xSpeed);
+            float anguloGrados = anguloRadianes * MathUtils.radiansToDegrees;
+            spr.setRotation(anguloGrados - 90);
+
+            this.xSpeed = xSpeed;
+            this.ySpeed = ySpeed;
+
+            spr.getBoundingRectangle().setPosition(x, y);
 
 
 	    }
 	    public void update() {
 	        spr.setPosition(spr.getX()+xSpeed, spr.getY()+ySpeed);
-	        if (spr.getX() < 0 || spr.getX()+spr.getWidth() > Gdx.graphics.getWidth()) {
-	            destroyed = true;
-	        }
-	        if (spr.getY() < 0 || spr.getY()+spr.getHeight() > Gdx.graphics.getHeight()) {
-	        	destroyed = true;
-	        }
+            if (spr.getX() < -50 || spr.getX() > Config.ANCHO_MUNDO + 50) {
+                destroyed = true;
+            }
+            if (spr.getY() < -50 || spr.getY() > Config.ALTO_MUNDO + 50) {
+                destroyed = true;
+            }
 
 
 	    }
@@ -58,6 +66,7 @@ public class Bullet implements IDestruible {
             }
             return false;
         }
+
         @Override
 	    public boolean estaDestruido() {return this.destroyed;}
 
@@ -68,7 +77,7 @@ public class Bullet implements IDestruible {
 
         @Override
         public int getVidas() {
-            // Operador ternario: (condición ? si_es_verdad : si_es_falso)
+
             return this.destroyed ? 0 : 1;
         }
 
@@ -76,8 +85,6 @@ public class Bullet implements IDestruible {
         public float getX() {
         return spr.getX();
     }
-
-
 
         public float getY() {
         return spr.getY();
@@ -94,5 +101,14 @@ public class Bullet implements IDestruible {
         return false;
     }
 
+    public void setRotation(float degrees) {
+        this.spr.setRotation(degrees);
+    }
+    public void setDamage(int damage) {
+        this.damage = damage;
+    }
+    public int getDamage() {
+        return this.damage;
+    }
 
 }

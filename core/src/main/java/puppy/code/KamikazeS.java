@@ -40,7 +40,7 @@ public class KamikazeS extends EntidadJuego {
         switch (estado) {
             case 0: // --- BAJANDO ---
                 position.y -= velocidadPEI * delta;
-                spr.setRotation(180);
+
 
                 // Al llegar al 60% de la altura, inicia el rizo
                 if (position.y < 800 * 0.6f) {
@@ -54,28 +54,25 @@ public class KamikazeS extends EntidadJuego {
             case 1:
                 // Velocidad angular = Velocidad lineal / Radio
                 float velocidadAngular = velocidadPEI / radioLoop;
-
-                // Restamos ángulo para girar en sentido horario
                 anguloActual -= velocidadAngular * delta;
 
                 // Mover en círculo
                 position.x = centroGiroX + radioLoop * MathUtils.cos(anguloActual);
                 position.y = centroGiroY + radioLoop * MathUtils.sin(anguloActual);
 
-                // Rotar sprite
-                float grados = anguloActual * MathUtils.radiansToDegrees;
-                spr.setRotation(grados - 90);
+
+
 
                 // Si completó el giro y mira hacia arriba, salir
                 if (anguloActual <= -1.5f * MathUtils.PI) {
                     estado = 2;
-                    spr.setRotation(0);
+
                 }
                 break;
 
             case 2: // --- SUBIENDO (RETIRADA) ---
                 position.y += velocidadPEI * delta;
-                spr.setRotation(0);
+
 
                 if (position.y > 800 + 50) {
                     destruir();
@@ -84,6 +81,30 @@ public class KamikazeS extends EntidadJuego {
         }
 
         spr.setPosition(position.x, position.y);
+
+        // --- 2. NUEVA LÓGICA: SIEMPRE MIRAR AL JUGADOR ---
+        // Esto hace que el enemigo rote su sprite hacia la nave, sin importar cómo se mueva
+
+        Nave4 nave = juego.getNave();
+
+        // Calculamos los centros de ambos
+        float myCenterX = position.x + spr.getWidth() / 2;
+        float myCenterY = position.y + spr.getHeight() / 2;
+
+        float playerCenterX = nave.getX() + nave.getHitbox().width / 2;
+        float playerCenterY = nave.getY() + nave.getHitbox().height / 2;
+
+
+        float diffX = playerCenterX - myCenterX;
+        float diffY = playerCenterY - myCenterY;
+
+        float angleRad = MathUtils.atan2(diffY, diffX);
+        float angleDeg = angleRad * MathUtils.radiansToDegrees;
+
+        // Restamos 90 porque tu sprite original "mira" hacia arriba
+        spr.setRotation(angleDeg - 90);
+
+
 
         // --- DISPARO ---
         fireTimer += delta;
@@ -100,12 +121,27 @@ public class KamikazeS extends EntidadJuego {
             fireTimer = 0;
             dispararAlJugador(juego);
         }
+
+        if (enHit) {
+            tiempoHit -= delta;
+            if (tiempoHit <= 0) {
+                enHit = false;
+                this.spr.setColor(1, 1, 1, 1); // Volver a Blanco (Normal)
+            }
+        }
+
     }
 
     private void dispararAlJugador(PantallaJuego juego) {
         Nave4 nave = juego.getNave();
-        float deltaX = nave.getX() - this.position.x;
-        float deltaY = nave.getY() - this.position.y;
+
+        float originX = this.position.x + spr.getWidth() / 2;
+        float originY = this.position.y + spr.getHeight() / 2;
+
+
+        float deltaX = nave.getX() + nave.getWidth()/2 - originX; // Apuntar al centro de la nave
+        float deltaY = nave.getY() + nave.getHeight()/2 - originY;
+
         float distancia = (float) Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
         if (distancia > 0) {
@@ -115,10 +151,11 @@ public class KamikazeS extends EntidadJuego {
             float balaVY = (deltaY / distancia) * velocidadBala;
 
             // Spawn centrado
-            float spawnX = position.x + spr.getWidth()/2 - 5;
+            //float spawnX = position.x + spr.getWidth()/2 - 5;
 
             // Crear bala
-            Bullet b = new Bullet(spawnX, position.y, balaVX, balaVY, txBala);
+            //Bullet b = new Bullet(spawnX, position.y, balaVX, balaVY, txBala);
+            Bullet b = new Bullet(originX, originY, balaVX, balaVY, txBala);
 
 
             juego.agregarBalaEnemiga(b);

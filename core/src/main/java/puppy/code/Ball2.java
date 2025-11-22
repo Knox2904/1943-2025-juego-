@@ -53,6 +53,16 @@ public class Ball2 extends EntidadJuego {
         }
 
         spr.setPosition(position.x, position.y);
+
+        if (enHit) {
+            tiempoHit -= delta;
+            if (tiempoHit <= 0) {
+                enHit = false;
+                this.spr.setColor(1, 1, 1, 1); // Volver a Blanco
+            }
+        }
+
+
     }
 
 

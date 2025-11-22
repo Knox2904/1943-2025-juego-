@@ -87,6 +87,16 @@ public class Kamikaze extends EntidadJuego {
             // Usa 'destroyed' (heredado de EntidadJuego)
             this.destroyed = true;
         }
+
+        if (enHit) {
+            tiempoHit -= delta;
+            if (tiempoHit <= 0) {
+                enHit = false;
+                this.spr.setColor(1, 1, 1, 1); // Volver a Blanco (Normal)
+            }
+        }
+
+
     }
 
 
