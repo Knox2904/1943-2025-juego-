@@ -41,12 +41,11 @@ public class KamikazeS extends EntidadJuego {
                 spr.setRotation(180);
 
                 // Al llegar al 60% de la altura, inicia el rizo
-                if (position.y < Gdx.graphics.getHeight() * 0.6f) {
+                if (position.y < 800 * 0.6f) {
                     estado = 1;
-                    // Configura el centro del giro a su derecha
                     centroGiroX = position.x + radioLoop;
                     centroGiroY = position.y;
-                    anguloActual = MathUtils.PI; // 180 grados (lado izquierdo del círculo)
+                    anguloActual = MathUtils.PI;
                 }
                 break;
 
@@ -76,7 +75,7 @@ public class KamikazeS extends EntidadJuego {
                 position.y += velocidadPEI * delta;
                 spr.setRotation(0);
 
-                if (position.y > Gdx.graphics.getHeight() + 50) {
+                if (position.y > 800 + 50) {
                     destruir();
                 }
                 break;

@@ -4,27 +4,32 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
+
 import java.util.ArrayList;
 import java.util.Collections;
-
-
 
 public class UpgradeScreen implements Screen {
 
     private SpaceNavigation game;
-    private Screen pantallaJuegoAnterior; // Para saber a dónde volver
+    private Screen pantallaJuegoAnterior;
     private SpriteBatch batch;
     private BitmapFont font;
     private ShapeRenderer shapeRenderer;
 
+    // --- CÁMARA Y VIEWPORT ---
+    private OrthographicCamera camera;
+    private Viewport viewport;
+
     private ArrayList<UpgradeCard> todasLasMejoras;
     private UpgradeCard[] opcionesActuales = new UpgradeCard[3];
-
-    // Hitboxes para hacer clic en las tarjetas
     private Rectangle[] opcionesHitbox = new Rectangle[3];
 
     public UpgradeScreen(SpaceNavigation game, Screen pantallaJuego) {
@@ -34,27 +39,28 @@ public class UpgradeScreen implements Screen {
         this.font = game.getFont();
         this.shapeRenderer = new ShapeRenderer();
 
-        // Crear la baraja de todas las mejoras posibles
+        // 1. Configurar cámara virtual (Igual que PantallaJuego)
+        camera = new OrthographicCamera();
+        viewport = new FitViewport(1200, 800, camera); // MUNDO DE 1200x800
+        viewport.apply();
+
         todasLasMejoras = new ArrayList<>();
         inicializarBaraja();
 
-        //Barajar y tomar 3
         Collections.shuffle(todasLasMejoras);
         opcionesActuales[0] = todasLasMejoras.get(0);
         opcionesActuales[1] = todasLasMejoras.get(1);
         opcionesActuales[2] = todasLasMejoras.get(2);
 
-        // Definir las zonas de clic
-        int anchoTarjeta = 140; // Ancho de cada tarjeta
-        int altoTarjeta = 200; // Alto de cada tarjeta
-        int posY = 200;      // Altura Y
+        // 2. Definir zonas de clic usando el tamaño FIJO (1200)
+        int anchoTarjeta = 140;
+        int altoTarjeta = 200;
+        int posY = 300; // Subí un poco las tarjetas para que se vean mejor
 
-        // Calcula las posiciones X para 3 tarjetas centradas
-
-
-        int screenWidth = Gdx.graphics.getWidth();
+        // Usamos 1200 en lugar de Gdx.graphics.getWidth()
+        int anchoMundo = 1200;
         int anchoTotalTarjetas = anchoTarjeta * 3;
-        int espacioSobrante = screenWidth - anchoTotalTarjetas;
+        int espacioSobrante = anchoMundo - anchoTotalTarjetas;
         int espacio = espacioSobrante / 4;
 
         opcionesHitbox[0] = new Rectangle(espacio, posY, anchoTarjeta, altoTarjeta);
@@ -63,147 +69,96 @@ public class UpgradeScreen implements Screen {
     }
 
     private void inicializarBaraja() {
-        // Aquí añadimos todas las mejoras que se pueden elegir
-        todasLasMejoras.add(new UpgradeCard(
-            "Motor Mejorado",
-            "+10% Velocidad de Movimiento",
-            TipoMejora.VELOCIDAD_JUGADOR));
-
-        todasLasMejoras.add(new UpgradeCard(
-            "Cadencia Aumentada",
-            "+15% Velocidad de Disparo",
-            TipoMejora.CADENCIA_DISPARO));
-
-        todasLasMejoras.add(new UpgradeCard(
-            "Munición Potenciada",
-            "+1 Daño por bala",
-            TipoMejora.DAÑO_EXTRA));
-        // ... (Añade más mejoras aquí)
+        todasLasMejoras.add(new UpgradeCard("Motor Mejorado", "+10% Velocidad", TipoMejora.VELOCIDAD_JUGADOR));
+        todasLasMejoras.add(new UpgradeCard("Cadencia Aumentada", "+15% Disparo", TipoMejora.CADENCIA_DISPARO));
+        todasLasMejoras.add(new UpgradeCard("Munición Potenciada", "+1 Daño", TipoMejora.DAÑO_EXTRA));
+        // Agrega más si tienes...
     }
 
     @Override
     public void render(float delta) {
-        // 1. Detectar Clics (Esto estaba bien)
+        // Limpiar pantalla (aunque dibujaremos encima)
+        Gdx.gl.glClearColor(0, 0, 0, 1);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        // Aplicar cámara al shapeRenderer (para el fondo negro transparente)
+        shapeRenderer.setProjectionMatrix(camera.combined);
+
+        // --- FONDO SEMI-TRANSPARENTE ---
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0, 0, 0, 0.85f);
+        // Dibujamos el rectángulo negro del tamaño del MUNDO
+        shapeRenderer.rect(0, 0, viewport.getWorldWidth(), viewport.getWorldHeight());
+        shapeRenderer.end();
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+
+        // --- LÓGICA DE CLIC (CORREGIDA) ---
         if (Gdx.input.isButtonJustPressed(0)) {
-            float mouseX = Gdx.input.getX();
-            float mouseY = Gdx.graphics.getHeight() - Gdx.input.getY();
+            // TRADUCCIÓN DE COORDENADAS:
+            // Convertimos el clic de la pantalla (ej: pixel 1500) a coordenadas del juego (ej: pixel 900)
+            Vector3 touchPoint = new Vector3();
+            viewport.unproject(touchPoint.set(Gdx.input.getX(), Gdx.input.getY(), 0));
 
             for (int i = 0; i < 3; i++) {
-                if (opcionesHitbox[i].contains(mouseX, mouseY)) {
+                // Verificamos colisión con el punto traducido (touchPoint.x, touchPoint.y)
+                if (opcionesHitbox[i].contains(touchPoint.x, touchPoint.y)) {
                     aplicarMejoraYVolver(opcionesActuales[i]);
                     return;
                 }
             }
         }
 
-
-
-        // --- ARREGLO DE TRANSPARENCIA ---
-        // Esto deja el último frame del juego "pausado" en el fondo.
-
-        // Habilita el blending (para la opacidad)
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-
-        // Dibuja un "velo" negro semi-transparente SOBRE el juego
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(0, 0, 0, 0.8f); // 80% de opacidad
-        shapeRenderer.rect(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        shapeRenderer.end();
-
-        // Deshabilita el blending para que la fuente se vea nítida
-        Gdx.gl.glDisable(GL20.GL_BLEND);
-
-
-        // --- DIBUJAR TEXTO (CON TAMAÑO Y CENTRADO) ---
+        // --- DIBUJAR TEXTOS ---
+        batch.setProjectionMatrix(camera.combined); // IMPORTANTE: Aplicar cámara al batch
         batch.begin();
 
-        // Título de la pantalla (letra más grande)
         font.getData().setScale(1.8f);
-        font.draw(batch, "¡NIVEL ALCANZADO! Elige una mejora:",
-            0,                                  // X (0)
-            Gdx.graphics.getHeight() - 50,      // Y (50px desde arriba)
-            Gdx.graphics.getWidth(),            // Ancho (toda la pantalla)
-            com.badlogic.gdx.utils.Align.center, // <-- ARREGLO DE CENTRADO
-            true);
+        font.draw(batch, "¡NIVEL ALCANZADO! Elige una mejora:", 0, 700, 1200, 1, true);
 
-        // Dibuja las 3 tarjetas (letra un poco más pequeña)
         font.getData().setScale(1.2f);
         for (int i = 0; i < 3; i++) {
             Rectangle box = opcionesHitbox[i];
             UpgradeCard card = opcionesActuales[i];
 
+            // Dibujar un borde simple (opcional, ayuda a ver dónde hacer clic)
+            // batch.draw(texturaTarjeta, box.x, box.y, box.width, box.height);
 
-            // batch.draw(texturaBordeTarjeta, box.x, box.y, box.width, box.height);
+            font.setColor(Color.CYAN);
+            font.draw(batch, card.getTitulo(), box.x, box.y + box.height - 20, box.width, 1, true);
 
-
-
-            // Dibuja el Título de la tarjeta
-            font.draw(batch, card.getTitulo(),
-                box.x,                      // X
-                box.y + box.height - 20,    // Y (20px desde arriba de la caja)
-                box.width,                  // Ancho
-                com.badlogic.gdx.utils.Align.center, // <-- ARREGLO DE CENTRADO
-                true);
-
-            // Dibuja la Descripción de la tarjeta
-            font.draw(batch, card.getDescripcion(),
-                box.x,
-                box.y + box.height / 2,     // Y (A la mitad de la caja)
-                box.width,
-                com.badlogic.gdx.utils.Align.center, // <-- ARREGLO DE CENTRADO
-                true);
+            font.setColor(Color.WHITE);
+            font.draw(batch, card.getDescripcion(), box.x, box.y + box.height / 2, box.width, 1, true);
         }
 
-        // --- DIBUJAR ADVERTENCIA DE DIFICULTAD ---
-        font.setColor(Color.RED); // Ponemos la letra roja para que destaque
-        font.getData().setScale(1.0f); // Tamaño normal
-
-        String advertencia = "ADVERTENCIA: Detectada señal enemiga.\nAl mejorar tus sistemas, la flota enemiga aumentará su agresividad.";
-
-        font.draw(batch, advertencia,
-            20,                         // X (un poco de margen)
-            120,                        // Y (debajo de las tarjetas)
-            Gdx.graphics.getWidth() - 40, // Ancho máximo (para que haga salto de línea)
-            com.badlogic.gdx.utils.Align.center, // Centrado
-            true);                      // Habilitar wrap (salto de línea automático)
-
-        font.setColor(Color.WHITE); // ¡IMPORTANTE! Vuelve a ponerla blanca para lo demás
-
+        // Advertencia
+        font.setColor(Color.RED);
+        font.getData().setScale(1.0f);
+        font.draw(batch, "ADVERTENCIA: La flota enemiga aumentará su agresividad.",
+            0, 150, 1200, 1, true);
+        font.setColor(Color.WHITE);
 
         batch.end();
     }
 
     private void aplicarMejoraYVolver(UpgradeCard card) {
-        // 1. Llama al Singleton para guardar la mejora
         BuffManager.getInstance().applyBuff(card.getTipo());
-
-        // 2. Vuelve a la pantalla de juego
         game.setScreen(pantallaJuegoAnterior);
-
-        // 3. Libera recursos de esta pantalla
         this.dispose();
     }
 
-    // --- Otros métodos de Screen (puedes dejarlos vacíos) ---
     @Override
-    public void show() {
-        // (Aquí podrías pausar la música del juego si quisieras)
+    public void resize(int width, int height) {
+        // Actualizar viewport al cambiar tamaño de ventana
+        viewport.update(width, height, true);
     }
 
-    @Override
-    public void resize(int width, int height) { }
-
-    @Override
-    public void pause() { }
-
-    @Override
-    public void resume() { }
-
-    @Override
-    public void hide() {
-        // (Aquí podrías reanudar la música del juego)
-    }
+    // ... Otros métodos vacíos (show, pause, resume, hide) ...
+    @Override public void show() {}
+    @Override public void pause() {}
+    @Override public void resume() {}
+    @Override public void hide() {}
 
     @Override
     public void dispose() {

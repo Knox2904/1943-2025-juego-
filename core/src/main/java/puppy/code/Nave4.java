@@ -73,8 +73,9 @@ public class Nave4 extends GameObject implements IDestruible {
         if (Gdx.input.isKeyPressed(Input.Keys.S)) y -= PLAYER_SPEED * delta;
 
         // Límites de Pantalla
-        float screenWidth = Gdx.graphics.getWidth();
-        float screenHeight = Gdx.graphics.getHeight();
+
+        float screenWidth = 1200f;
+        float screenHeight = 800f;
 
         if (x < 0) x = 0;
         if (x > screenWidth - spr.getWidth()) x = screenWidth - spr.getWidth();

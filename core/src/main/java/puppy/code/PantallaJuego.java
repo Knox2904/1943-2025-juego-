@@ -12,8 +12,8 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
-
-
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
 
 
 public class PantallaJuego implements Screen {
@@ -52,6 +52,8 @@ public class PantallaJuego implements Screen {
 
     private float anuncioRondaTimer = 3.0f;
 
+    private Viewport viewport ;
+
 
 
     public PantallaJuego(SpaceNavigation game, int ronda, float combustible, int score,
@@ -65,7 +67,10 @@ public class PantallaJuego implements Screen {
 
         batch = game.getBatch();
         camera = new OrthographicCamera();
-        camera.setToOrtho(false, 480, 640);
+        //camera.setToOrtho(false, 480, 640);
+        viewport = new FitViewport(1200, 800, camera);
+        viewport.apply();
+
 
         // --- Cargas de Assets (Sonidos y Texturas) ---
         explosionSound = Gdx.audio.newSound(Gdx.files.internal("explosion.ogg"));
@@ -76,7 +81,7 @@ public class PantallaJuego implements Screen {
         powerUpTexture = new Texture(Gdx.files.internal("powerUpDobleTiro.png"));
         texturaAliado = new Texture(Gdx.files.internal("MainShip3.png"));
         backgroundTexture = new Texture(Gdx.files.internal("fondo jugando.jpg"));
-        txEnemigo = new Texture(Gdx.files.internal("Kamikaze.png"));
+        txEnemigo = new Texture(Gdx.files.internal("kamikaze.png"));
         txAsteroide = new Texture(Gdx.files.internal("aGreyMedium4.png"));
         txBalaEnemiga = new Texture(Gdx.files.internal("Rocket2.png"));
         txTank = new Texture(Gdx.files.internal("tanque 2025.png"));
@@ -108,7 +113,7 @@ public class PantallaJuego implements Screen {
             float anchoBarraTotal = 200f;
             float altoBarra = 20f;
             float margenX = 10f;
-            float margenY = Gdx.graphics.getHeight() - 40f;
+            float margenY = Config.ALTO_MUNDO - 40f;
 
             // Fondo de la barra (Gris)
             batch.setColor(0.2f, 0.2f, 0.2f, 1f);
@@ -127,8 +132,10 @@ public class PantallaJuego implements Screen {
             // Resetear color y dibujar textos
             batch.setColor(1f, 1f, 1f, 1f);
             game.getFont().getData().setScale(1.2f);
-            game.getFont().draw(batch, "Score: " + this.score, Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 20);
-            game.getFont().draw(batch, "High: " + game.getHighScore(), Gdx.graphics.getWidth() / 2 - 50, Gdx.graphics.getHeight() - 20);
+
+            game.getFont().draw(batch, "Score: " + this.score, 1200 - 250, Config.ALTO_MUNDO - 20);
+            game.getFont().draw(batch, "High: " + game.getHighScore(), 1200 / 2 - 50, Config.ALTO_MUNDO - 20);
+
             game.getFont().getData().setScale(1.0f);
             game.getFont().draw(batch, "FUEL", margenX + 5, margenY + 15);
         }
@@ -145,8 +152,8 @@ public class PantallaJuego implements Screen {
         // 1. Actualizar Balas JUGADOR
         for (Bullet b : balasJugador) {
             b.update();
-            if (b.getX() < -10 || b.getX() > Gdx.graphics.getWidth() + 10 ||
-                b.getY() < -10 || b.getY() > Gdx.graphics.getHeight() + 10) {
+            if (b.getX() < -10 || b.getX() > viewport.getWorldWidth() + 10 ||
+                b.getY() < -10 || b.getY() > viewport.getWorldHeight() + 10) {
                 b.recibirHit(1, 0);
             }
         }
@@ -155,7 +162,7 @@ public class PantallaJuego implements Screen {
         for (Bullet b : balasEnemigas) {
             b.update();
             // Check salida de pantalla
-            if (b.getY() < -50 || b.getY() > Gdx.graphics.getHeight() + 50) {
+            if (b.getY() < -50 || b.getY() > viewport.getWorldHeight() + 50) {
                 b.recibirHit(1, 0);
             }
         }
@@ -193,10 +200,13 @@ public class PantallaJuego implements Screen {
 
         // --- 3. DIBUJADO ---
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        batch.setProjectionMatrix(camera.combined);
+
         batch.begin();
 
         // 1. FONDO (Primero)
-        batch.draw(backgroundTexture, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        batch.draw(backgroundTexture, 0, 0, viewport.getWorldWidth(), viewport.getWorldHeight());
 
         // 2. SPRITES (En medio)
         for (PowerUp p : powerUps) p.draw(batch);
@@ -213,10 +223,10 @@ public class PantallaJuego implements Screen {
             game.getFont().getData().setScale(3.0f);
             game.getFont().draw(batch,
                 "RONDA " + ronda,
-                0,
-                Gdx.graphics.getHeight() / 2 + 50,
-                Gdx.graphics.getWidth(),
-                com.badlogic.gdx.utils.Align.center,
+                0,                  // Empieza en X = 0
+                Config.ALTO_MUNDO / 2 + 50,       // Altura: Mitad de 800 (+ un poco arriba)
+                1200,               // Ancho objetivo: Todo el ancho del mundo (1200)
+                com.badlogic.gdx.utils.Align.center, // Alineación: CENTRO
                 false);
 
             game.getFont().setColor(1, 1, 1, 1); // Restaurar Blanco
@@ -386,7 +396,7 @@ public class PantallaJuego implements Screen {
 
 	@Override
 	public void resize(int width, int height) {
-		// TODO Auto-generated method stub
+        viewport.update(width, height, true);
 
 	}
 
@@ -493,7 +503,7 @@ public class PantallaJuego implements Screen {
 
         // 3. Bucle de compra de enemigos
         while (presupuesto > 0) {
-            float x = r.nextInt(Gdx.graphics.getWidth() - 64);
+            float x = r.nextInt((int)viewport.getWorldWidth() - 64);
             float y = Gdx.graphics.getHeight() + 50;
 
             EntidadJuego nuevoEnemigo = null;

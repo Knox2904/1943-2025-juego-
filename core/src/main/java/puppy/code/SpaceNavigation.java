@@ -18,6 +18,7 @@ public class SpaceNavigation extends Game {
 	private int highScore;
 
     private Music gameMusic ;
+    private int lastSongIndex = -1;
 
 
 
@@ -47,13 +48,27 @@ public class SpaceNavigation extends Game {
         };
 
 
-        int indice = MathUtils.random(0, listaCanciones.length - 1);
+        int indice;
+        do {
+            indice = MathUtils.random(0, listaCanciones.length - 1);
+        } while (indice == lastSongIndex);
+
+        lastSongIndex = indice;
 
         // Cargar y reproducir
         if (gameMusic != null) gameMusic.dispose(); // Limpia la anterior si existía
+
+
         gameMusic = Gdx.audio.newMusic(Gdx.files.internal(listaCanciones[indice]));
 
-        gameMusic.setLooping(true);
+        gameMusic.setLooping(false);
+        gameMusic.setOnCompletionListener(new Music.OnCompletionListener() {
+            @Override
+            public void onCompletion(Music music) {
+                playMusic();
+            }
+        });
+
         gameMusic.setVolume(0.7f);
         gameMusic.play();
     }

@@ -23,21 +23,12 @@ public class Ball2 extends EntidadJuego {
         this.ySpeed = MathUtils.sinDeg(angulo) * this.velocidadPEI;
         // Validar que borde de esfera no quede fuera
 
-        if (this.position.x - size < 0) {
-            this.position.x = x + size;
-        }
-        if (this.position.x + size > Gdx.graphics.getWidth()) {
-            this.position.x = x - size;
-        }
+        if (this.position.x - size < 0) this.position.x = x + size;
+        if (this.position.x + size > 1200) this.position.x = x - size;
 
-        if (this.position.y - size < 0) {
-            this.position.y = y + size;
-        }
-        if (this.position.y + size > Gdx.graphics.getHeight()) {
-            this.position.y = y - size;
-        }
+        if (this.position.y - size < 0) this.position.y = y + size;
+        if (this.position.y + size > 800) this.position.y = y - size;
 
-        //se valida la posicion, esto lo agregue solo por si acaso y por algo raro que sucedia.
         this.spr.setPosition(this.position.x, this.position.y);
     }
 
@@ -49,13 +40,16 @@ public class Ball2 extends EntidadJuego {
         position.y += ySpeed * delta;
 
         // Lógica de rebote (simplificada)
-        if (position.x < 0 || position.x + spr.getWidth() > Gdx.graphics.getWidth()) {
+        if (position.x < 0 || position.x + spr.getWidth() > 1200) {
             xSpeed *= -1;
-            position.x = MathUtils.clamp(position.x, 0, Gdx.graphics.getWidth() - spr.getWidth()); //un seguro para ver que se quede dentro de los parametros
+            // Clamp para que no se quede pegado en el borde
+            position.x = MathUtils.clamp(position.x, 0, 1200 - spr.getWidth());
         }
-        if (position.y < 0 || position.y + spr.getHeight() > Gdx.graphics.getHeight()) {
+
+        // Eje Y (Alto 800)
+        if (position.y < 0 || position.y + spr.getHeight() > 800) {
             ySpeed *= -1;
-            position.y = MathUtils.clamp(position.y, 0, Gdx.graphics.getHeight() - spr.getHeight());//Se aplica el seguro.
+            position.y = MathUtils.clamp(position.y, 0, 800 - spr.getHeight());
         }
 
         spr.setPosition(position.x, position.y);
