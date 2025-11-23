@@ -20,12 +20,13 @@ public class EnemigoT1 implements OleadaFactory {
 
     @Override
     public EntidadJuego createEnemigoT2(float x, float y, PantallaJuego juego) {
-        // LÓGICA DE PROBABILIDAD:
-        // 30% EliminaBuffs, 70% Kamikaze Normal
-        if (MathUtils.randomBoolean(0.3f)) {
-            return new EliminaBuffs(x, y, txEliminaBuffs);
-        } else {
-            return new Kamikaze(x, y, juego.getNave(), txKamikaze, 300f);
-        }
+        return new Kamikaze(x, y, juego.getNave(), txKamikaze, 300f);
+
+    }
+
+    @Override
+    public EntidadJuego createEnemigoT3(float x, float y, PantallaJuego juego) {
+        // Tier 3 (Especial): EliminaBuffs
+        return new EliminaBuffs(x, y, txEliminaBuffs);
     }
 }

@@ -33,13 +33,28 @@ public class Carguero extends EntidadJuego {
         }
         spr.setPosition(position.x, position.y);
 
-        // 2. Spawner (Cada 3 segundos)
+        // 2. Spawner (Cada 2 segundos)
         spawnTimer += delta;
-        if (spawnTimer > 3.0f) {
+        if (spawnTimer > 2.0f) {
             spawnTimer = 0;
             spawnearHijo(juego);
         }
+
+        if (enHit) {
+            tiempoHit -= delta;
+            if (tiempoHit <= 0) {
+                enHit = false;
+                this.spr.setColor(1, 1, 1, 1); // Volver a Blanco
+            }
+        }
+        // --- CORRECCIÓN: LIMPIEZA ---
+        // Si por alguna razón sale muy abajo (ej: empujado), muere.
+        if (position.y < -200) {
+            destruir();
+        }
+
     }
+
 
     private void spawnearHijo(PantallaJuego juego) {
         float x = this.position.x + spr.getWidth()/2;

@@ -96,16 +96,28 @@ public class NaveTanque extends EntidadJuego {
     }
 
 
-    public void aumentarDificultad(float factor) {
-        // 1. Velocidad de Movimiento (Sube poco, el tanque es pesado)
-        this.velocidadPEI *= (1 + (factor - 1) * 0.3f);
+    public void aumentarDificultad(float factorRonda) {
 
-        // 2. Vida
-        this.vidaActual = (int) (this.vidaActual * factor);
+        // --- 1. OBTENER FACTORES DE UPGRADES ---
+        // Multiplicador de vida por upgrades del jugador
+        float factorUpgradeSalud = BuffManager.getInstance().getEnemyHealthMultiplier();
 
-        // 3. Cadencia de Disparo (Reducimos el tiempo entre disparos)
-        // Si factor es 2.0 (doble dificultad), disparará cada 1.0 segundo.
-        this.tiempoEntreDisparos = 2.0f / factor;
+        // Multiplicador de velocidad por upgrades del jugador
+        float factorUpgradeVelocidad = BuffManager.getInstance().getEnemySpeedMultiplier();
+
+        // ----------------------------------------
+
+        // 1. Velocidad de Movimiento (Factor Ronda x Factor Upgrade)
+        // Usamos el factor de aceleración suave por Ronda, y lo multiplicamos por la aceleración de Upgrades
+        this.velocidadPEI *= (1 + (factorRonda - 1) * 0.3f) * factorUpgradeVelocidad;
+
+        // 2. Vida (Factor Ronda x Factor Upgrade)
+        // Multiplicamos la vida base por la dificultad de la Ronda y, a su vez, por la dificultad del Jugador (Upgrades)
+        this.vidaActual = (int) (this.vidaActual * factorRonda * factorUpgradeSalud);
+
+        // 3. Cadencia de Disparo (Solo usamos el factor Ronda para la cadencia, que ya es alto)
+        // El arma disparará más rápido a medida que avanza la ronda
+        this.tiempoEntreDisparos = 2.0f / factorRonda;
 
         // Tope de seguridad: Que no dispare mas rápido que una ametralladora (0.5s)
         if (this.tiempoEntreDisparos < 0.5f) {

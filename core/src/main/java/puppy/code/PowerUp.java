@@ -43,6 +43,12 @@ public abstract class PowerUp extends GameObject {
     public void update(float delta, PantallaJuego juego) {
         position.y -= scrollSpeed * delta;
         spr.setPosition(position.x, position.y);
+        // --- CORRECCIÓN: LÍMITE DE PANTALLA ---
+        // Si baja más de -100 (sale de la pantalla), se destruye automáticamente.
+        // Esto evita que el EliminaBuffs persiga cosas fuera del mapa.
+        if (position.y < -100) {
+            destruir();
+        }
     }
 
 

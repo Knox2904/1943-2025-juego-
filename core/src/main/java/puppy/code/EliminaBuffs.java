@@ -77,16 +77,24 @@ public class EliminaBuffs extends EntidadJuego {
 
         spr.setPosition(position.x, position.y);
 
-        // 3. MUERTE POR SALIDA DE PANTALLA
-        // Solo muere si sale por abajo Y NO TIENE OBJETIVO (para permitirle bajar a buscar buffs)
-        // O si sale muy arriba (glitch)
-        if (objetivo == null && position.y < -100) {
+        // --- 3. LÍMITES DE SEGURIDAD (CORREGIDO) ---
+
+        // MUERTE ABSOLUTA: Si baja de Y = -100, muere SIEMPRE.
+        // Esto previene que se quede vivo fuera de la pantalla persiguiendo nada.
+        if (position.y < -100) {
             this.destruir();
         }
-        // Si sale por los lados, simplemente reaparece por el otro (Pacman effect) o muere.
-        // Mejor que muera para limpiar memoria si se va muy lejos.
+
+        // Límite lateral: Si se va muy a los lados, muere.
         if (position.x < -200 || position.x > Gdx.graphics.getWidth() + 200) {
             this.destruir();
+        }
+        if (enHit) {
+            tiempoHit -= delta;
+            if (tiempoHit <= 0) {
+                enHit = false;
+                this.spr.setColor(1, 1, 1, 1); // Volver a Blanco
+            }
         }
     }
 }

@@ -33,4 +33,9 @@ public class EnemigoT3 implements OleadaFactory {
         // Nivel 3 Fuerte: Carguero Pesado
         return new CargueroPesado(x, y, txCargueroBig, txTank, txBala, txCargueroSmall, txKamikaze, txKamikazeS , txEliminaBuffs);
     }
+    @Override
+    public EntidadJuego createEnemigoT3(float x, float y, PantallaJuego juego) {
+        // Por ahora, esta fábrica no tiene un "Especial Tier 3", retornamos null.
+        return null;
+    }
 }

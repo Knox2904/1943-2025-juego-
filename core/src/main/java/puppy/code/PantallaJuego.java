@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Random;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
@@ -11,6 +12,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -19,18 +21,18 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 public class PantallaJuego implements Screen {
 
-	private SpaceNavigation game;
-	private OrthographicCamera camera;
-	private SpriteBatch batch;
-	private Sound explosionSound;
+    private SpaceNavigation game;
+    private OrthographicCamera camera;
+    private SpriteBatch batch;
+    private Sound explosionSound;
 
-	private int score;
-	private int ronda;
-	private int velXAsteroides;
-	private int velYAsteroides;
-	private int cantAsteroides;
+    private int score;
+    private int ronda;
+    private int velXAsteroides;
+    private int velYAsteroides;
+    private int cantAsteroides;
 
-	private Nave4 nave;
+    private Nave4 nave;
     private ArrayList<Bullet> balasJugador = new ArrayList<>();
     private ArrayList<Bullet> balasEnemigas = new ArrayList<>();
     private ArrayList<PowerUp> powerUps = new ArrayList<>();
@@ -44,11 +46,11 @@ public class PantallaJuego implements Screen {
     private Texture txEnemigo; // Textura para el kamikaze
     private Texture txBalaEnemiga;
     private Texture txTank;
-    private Texture txKamikazeS; // Nuevo
+    private Texture txKamikazeS;
+    private Texture txHealer;// Nuevo
+    private Texture txEliminaBuffs;
     private Texture txCargueroSmall;
     private Texture txCargueroBig;
-    private Texture txEliminaBuffs;
-
     private OleadaFactory factory;
     //  Variables añadidas
     private ArrayList<EntidadJuego> enemigos = new ArrayList<>();
@@ -60,6 +62,21 @@ public class PantallaJuego implements Screen {
 
     private Viewport viewport ;
     private Texture txEscudo;
+    private Texture txPowerAmmo;
+    private Texture txPowerFuel;
+    private Texture txPowerAliado;
+
+    private Boss jefeActivo = null;
+    private Texture txBarraBoss;
+    private Texture txBoss_1;
+
+
+    private Sound soundShieldBreak;
+    private Sound soundHeal;
+    private Sound soundHealerDown;
+
+    private boolean isPaused = false;
+    private ShapeRenderer shapeRenderer;
 
 
 
@@ -71,6 +88,8 @@ public class PantallaJuego implements Screen {
         this.velXAsteroides = velXAsteroides;
         this.velYAsteroides = velYAsteroides;
         this.cantAsteroides = cantAsteroides;
+
+        shapeRenderer = new ShapeRenderer();
 
         batch = game.getBatch();
         camera = new OrthographicCamera();
@@ -92,16 +111,30 @@ public class PantallaJuego implements Screen {
         txBalaEnemiga = new Texture(Gdx.files.internal("Rocket2.png"));
         txTank = new Texture(Gdx.files.internal("tanque 2025.png"));
         txKamikazeS = new Texture(Gdx.files.internal("kamikazeS.png"));
-        txEscudo = new Texture(Gdx.files.internal("MainShip3.png"));
+        txHealer = new Texture(Gdx.files.internal("healer.png"));
+        txEliminaBuffs = new Texture(Gdx.files.internal("MainShip3.png"));
         txCargueroSmall = new Texture(Gdx.files.internal("aGreyMedium4.png"));
         txCargueroBig = new Texture(Gdx.files.internal("aGreyLarge.png"));
-        txEliminaBuffs = new Texture(Gdx.files.internal("MainShip3.png")); // Usa otra imagen si tienes, o esta temporalmente
+
+        txEscudo = new Texture(Gdx.files.internal("escudo.png"));
+        txPowerFuel = new Texture(Gdx.files.internal("vida.png"));
+        txPowerAliado = new Texture(Gdx.files.internal("companion.png"));
+
+
+        soundShieldBreak = Gdx.audio.newSound(Gdx.files.internal("escudoRopiendose.mp3"));
+        soundHeal = Gdx.audio.newSound(Gdx.files.internal("heal.mp3"));
+        soundHealerDown = Gdx.audio.newSound(Gdx.files.internal("healerSinBateria.mp3"));
+
+        txBoss_1 = new Texture(Gdx.files.internal("Boss1.png"));
+
         // Crear textura barra
         com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(1, 1, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
         pixmap.setColor(com.badlogic.gdx.graphics.Color.WHITE);
         pixmap.fill();
         txBarra = new Texture(pixmap);
+        txBarraBoss = txBarra;
         pixmap.dispose();
+        game.stopMusic();
         game.playMusic();
 
         // Crear Nave
@@ -109,47 +142,73 @@ public class PantallaJuego implements Screen {
             new Texture(Gdx.files.internal("MainShip3.png")),
             Gdx.audio.newSound(Gdx.files.internal("hurt.ogg")),
             new Texture(Gdx.files.internal("Rocket2.png")),
-            Gdx.audio.newSound(Gdx.files.internal("pop-sound.mp3")),
+            Gdx.audio.newSound(Gdx.files.internal("disparo.mp3")),
             texturaAliado,
             txEscudo,
-            sound
+            soundShieldBreak
         );
+
+
 
         // --- INICIAR LA PRIMERA OLEADA ---
         // En lugar de todo el código repetido, solo llamamos al método:
         iniciarRonda();
     }
 
-        public void dibujaEncabezado() {
-            float anchoBarraTotal = 200f;
-            float altoBarra = 20f;
-            float margenX = 10f;
-            float margenY = Config.ALTO_MUNDO - 40f;
+    public void dibujaEncabezado() {
+        float anchoBarraTotal = 200f;
+        float altoBarra = 20f;
+        float margenX = 10f;
+        float margenY = Config.ALTO_MUNDO - 40f;
 
-            // Fondo de la barra (Gris)
-            batch.setColor(0.2f, 0.2f, 0.2f, 1f);
-            batch.draw(txBarra, margenX, margenY, anchoBarraTotal, altoBarra);
+        // Fondo de la barra (Gris)
+        batch.setColor(0.2f, 0.2f, 0.2f, 1f);
+        batch.draw(txBarra, margenX, margenY, anchoBarraTotal, altoBarra);
 
-            // Barra de vida (Color según porcentaje)
-            float porcentaje = nave.getCombustible() / nave.getMaxCombustible();
-            float anchoActual = anchoBarraTotal * porcentaje;
+        // Barra de vida (Color según porcentaje)
+        float porcentaje = nave.getCombustible() / nave.getMaxCombustible();
+        float anchoActual = anchoBarraTotal * porcentaje;
 
-            if (porcentaje > 0.6f) batch.setColor(0f, 1f, 0f, 1f); // Verde
-            else if (porcentaje > 0.2f) batch.setColor(1f, 1f, 0f, 1f); // Amarillo
-            else batch.setColor(1f, 0f, 0f, 1f); // Rojo
+        if (porcentaje > 0.6f) batch.setColor(0f, 1f, 0f, 1f); // Verde
+        else if (porcentaje > 0.2f) batch.setColor(1f, 1f, 0f, 1f); // Amarillo
+        else batch.setColor(1f, 0f, 0f, 1f); // Rojo
 
-            batch.draw(txBarra, margenX, margenY, anchoActual, altoBarra);
+        batch.draw(txBarra, margenX, margenY, anchoActual, altoBarra);
 
-            // Resetear color y dibujar textos
-            batch.setColor(1f, 1f, 1f, 1f);
-            game.getFont().getData().setScale(1.2f);
+        // Resetear color y dibujar textos
+        batch.setColor(1f, 1f, 1f, 1f);
+        game.getFont().getData().setScale(1.2f);
 
-            game.getFont().draw(batch, "Score: " + this.score, 1200 - 250, Config.ALTO_MUNDO - 20);
-            game.getFont().draw(batch, "High: " + game.getHighScore(), 1200 / 2 - 50, Config.ALTO_MUNDO - 20);
+        game.getFont().draw(batch, "Score: " + this.score, 1200 - 250, Config.ALTO_MUNDO - 20);
+        game.getFont().draw(batch, "High: " + game.getHighScore(), 1200 / 2 - 50, Config.ALTO_MUNDO - 20);
 
-            game.getFont().getData().setScale(1.0f);
-            game.getFont().draw(batch, "FUEL", margenX + 5, margenY + 15);
+        game.getFont().getData().setScale(1.0f);
+        game.getFont().draw(batch, "FUEL", margenX + 5, margenY + 15);
+
+        if (jefeActivo != null && !jefeActivo.estaDestruido()) {
+            float anchoPantalla = 1200;
+            float anchoBarra = 800; // Barra larga
+            float xBarra = (anchoPantalla - anchoBarra) / 2;
+            float yBarra = 750; // Arriba del todo
+
+            // 1. Fondo Rojo Oscuro
+            batch.setColor(0.5f, 0f, 0f, 1f);
+            batch.draw(txBarraBoss, xBarra, yBarra, anchoBarra, 20);
+
+            // 2. Vida Actual (Rojo Brillante)
+            float porcentajeJefe = (float) jefeActivo.getVidaActual() / jefeActivo.getVidaMax();
+            batch.setColor(1f, 0f, 0f, 1f);
+            batch.draw(txBarraBoss, xBarra, yBarra, anchoBarra * porcentajeJefe, 20);
+
+            // Texto del Jefe
+            game.getFont().draw(batch, "MOTHERSHIP OMEGA", xBarra, yBarra + 40);
+
+            // Resetear color
+            batch.setColor(1, 1, 1, 1);
         }
+
+
+    }
 
 
     public Nave4 getNave() { return nave; }
@@ -157,106 +216,75 @@ public class PantallaJuego implements Screen {
     @Override
     public void render(float delta) {
 
-        // --- 1. ACTUALIZACIONES ---
-        nave.update(delta, this);
-
-        // 1. Actualizar Balas JUGADOR
-        for (Bullet b : balasJugador) {
-            b.update();
-            if (b.getX() < -10 || b.getX() > viewport.getWorldWidth() + 10 ||
-                b.getY() < -10 || b.getY() > viewport.getWorldHeight() + 10) {
-                b.recibirHit(1, 0);
-            }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            isPaused = !isPaused;
         }
 
-        // 2. Actualizar Balas ENEMIGAS
-        for (Bullet b : balasEnemigas) {
-            b.update();
-            // Check salida de pantalla
-            if (b.getY() < -50 || b.getY() > viewport.getWorldHeight() + 50) {
-                b.recibirHit(1, 0);
-            }
-        }
-
-        if (!enemigosEntrantes.isEmpty()) {
-            enemigos.addAll(enemigosEntrantes);
-            enemigosEntrantes.clear();
-        }
-        // Actualizar TODOS los enemigos (Asteroides, Kamikazes, Tanques)
-        for (EntidadJuego enemigo : enemigos) {
-            enemigo.update(delta, this);
-        }
-
-        // Actualizar PowerUps
-        for (PowerUp p : powerUps) {
-            p.update(delta, this);
-        }
-
-        // --- SPAWNER PROGRESIVO (Sacar de la cola de pendientes) ---
-        if (anuncioRondaTimer <= 0) {
-
-            if (!enemigosPendientes.isEmpty()) {
-                // Solo sacamos enemigos si hay en la cola
-                spawnTimerEnemigo -= delta;
-
-                if (spawnTimerEnemigo <= 0) {
-                    // 1. Sacar el siguiente enemigo de la lista de espera
-                    EntidadJuego enemigoASpawnear = enemigosPendientes.remove(0);
-
-                    // 2. Activarlo (meterlo al juego real)
-                    enemigos.add(enemigoASpawnear);
-
-                    // 3. Calcular cuándo sale el siguiente (ej: entre 0.5 y 1.5 segundos)
-                    //    Usamos el multiplicador de BuffManager para que sea más rápido si es difícil
-                    float spawnRate = BuffManager.getInstance().getEnemySpawnRateMultiplier();
-                    spawnTimerEnemigo = MathUtils.random(0.5f, 1.5f) / spawnRate;
-                }
-            }
-        }
-
-        // --- 3. DIBUJADO ---
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        batch.setProjectionMatrix(camera.combined);
 
-        batch.begin();
+        if (!isPaused) {
+            // --- 1. ACTUALIZACIONES ---
+            nave.update(delta, this);
 
-        // 1. FONDO (Primero)
-        batch.draw(backgroundTexture, 0, 0, viewport.getWorldWidth(), viewport.getWorldHeight());
+            // 1. Actualizar Balas JUGADOR
+            for (Bullet b : balasJugador) {
+                b.update();
+                if (b.getX() < -10 || b.getX() > viewport.getWorldWidth() + 10 ||
+                    b.getY() < -10 || b.getY() > viewport.getWorldHeight() + 10) {
+                    b.recibirHit(1, 0);
+                }
+            }
 
-        // 2. SPRITES (En medio)
-        for (PowerUp p : powerUps) p.draw(batch);
-        for (Bullet b : balasJugador) b.draw(batch);
-        for (Bullet b : balasEnemigas) b.draw(batch);
-        for (EntidadJuego e : enemigos) e.draw(batch);
-        nave.draw(batch);
+            // 2. Actualizar Balas ENEMIGAS
+            for (Bullet b : balasEnemigas) {
+                b.update();
+                // Check salida de pantalla
+                if (b.getY() < -50 || b.getY() > viewport.getWorldHeight() + 50) {
+                    b.recibirHit(1, 0);
+                }
+            }
 
-        // 3. MENSAJE DE RONDA (Encima de las naves)
-        if (anuncioRondaTimer > 0) {
-            anuncioRondaTimer -= delta;
+            // --- NUEVO: Procesar enemigos entrantes (Hijos de cargueros) ---
+            if (!enemigosEntrantes.isEmpty()) {
+                enemigos.addAll(enemigosEntrantes);
+                enemigosEntrantes.clear();
+            }
 
-            game.getFont().setColor(1, 1, 0, 1); // Amarillo
-            game.getFont().getData().setScale(3.0f);
-            game.getFont().draw(batch,
-                "RONDA " + ronda,
-                0,                  // Empieza en X = 0
-                Config.ALTO_MUNDO / 2 + 50,       // Altura: Mitad de 800 (+ un poco arriba)
-                1200,               // Ancho objetivo: Todo el ancho del mundo (1200)
-                com.badlogic.gdx.utils.Align.center, // Alineación: CENTRO
-                false);
+            // Actualizar TODOS los enemigos (Asteroides, Kamikazes, Tanques)
+            for (EntidadJuego enemigo : enemigos) {
+                enemigo.update(delta, this);
+            }
 
-            game.getFont().setColor(1, 1, 1, 1); // Restaurar Blanco
-            game.getFont().getData().setScale(1.0f); // Restaurar tamaño
-        }
+            // Actualizar PowerUps
+            for (PowerUp p : powerUps) {
+                p.update(delta, this);
+            }
 
-        // 4. HUD (Encima de todo)
-        dibujaEncabezado();
+            // --- SPAWNER PROGRESIVO (Sacar de la cola de pendientes) ---
+            if (anuncioRondaTimer <= 0) {
 
-        batch.end();
+                if (!enemigosPendientes.isEmpty()) {
+                    // Solo sacamos enemigos si hay en la cola
+                    spawnTimerEnemigo -= delta;
+
+                    if (spawnTimerEnemigo <= 0) {
+                        // 1. Sacar el siguiente enemigo de la lista de espera
+                        EntidadJuego enemigoASpawnear = enemigosPendientes.remove(0);
+
+                        // 2. Activarlo (meterlo al juego real)
+                        enemigos.add(enemigoASpawnear);
+
+                        // 3. Calcular cuándo sale el siguiente (ej: entre 0.5 y 1.5 segundos)
+                        //    Usamos el multiplicador de BuffManager para que sea más rápido si es difícil
+                        float spawnRate = BuffManager.getInstance().getEnemySpawnRateMultiplier();
+                        spawnTimerEnemigo = MathUtils.random(0.5f, 1.5f) / spawnRate;
+                    }
+                }
+            }
 
 
-
-        // --- 4. COLISIONES ---
+            // --- 4. COLISIONES ---
 
             // A. Balas vs Enemigos (Cualquier tipo)
             for (int i = 0; i < balasJugador.size(); i++) {
@@ -267,7 +295,7 @@ public class PantallaJuego implements Screen {
                     if (!enemigo.estaDestruido()) {
                         if (b.checkCollision(enemigo.getHitbox())) {
                             explosionSound.play(0.35f);
-                            enemigo.recibirHit(1, delta); // Dañar enemigo
+                            enemigo.recibirHit(b.getDamage(), delta); // Dañar enemigo
                             b.recibirHit(1, delta);       // Destruir bala
                             agregarScore(10);
 
@@ -344,107 +372,151 @@ public class PantallaJuego implements Screen {
             }
 
 
+            // --- 5. LIMPIEZA ---
+            balasJugador.removeIf(Bullet::estaDestruido);
+            balasEnemigas.removeIf(Bullet::estaDestruido);
+            enemigos.removeIf(EntidadJuego::estaDestruido); // Limpia Asteroides, Kamikazes, etc.
+            powerUps.removeIf(PowerUp::estaDestruido);
 
-        // --- 5. LIMPIEZA ---
-        balasJugador.removeIf(Bullet::estaDestruido);
-        balasEnemigas.removeIf(Bullet::estaDestruido);
-        enemigos.removeIf(EntidadJuego::estaDestruido); // Limpia Asteroides, Kamikazes, etc.
-        powerUps.removeIf(PowerUp::estaDestruido);
+            // --- 6. LÓGICA DE NIVEL ---
+            if (nave.estaDestruido()) {
+                // ... Game Over logic ...
+                if (score > game.getHighScore()) game.setHighScore(score);
+                game.stopMusic();
+                Screen ss = new PantallaGameOver(game);
+                ss.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+                game.setScreen(ss);
+                dispose();
+                return;
+            }
 
+            // Si no quedan enemigos, pasamos a la siguiente ronda
+            if (enemigos.isEmpty() && enemigosPendientes.isEmpty()) {
 
-        // --- 6. LÓGICA DE NIVEL ---
-        if (nave.estaDestruido()) {
-            // ... Game Over logic ...
-            if (score > game.getHighScore()) game.setHighScore(score);
-            game.stopMusic();
-            Screen ss = new PantallaGameOver(game);
-            ss.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-            game.setScreen(ss);
-            dispose();
-            return;
+                // 1. Aumentar dificultad
+                ronda++;
+                velXAsteroides += 1;
+                velYAsteroides += 1;
+                cantAsteroides += 5;
+
+                // 2. Generar la nueva oleada EN ESTA MISMA PANTALLA
+                iniciarRonda();
+
+                // 3. ACTIVAR EL MENSAJE
+                anuncioRondaTimer = 3.0f;
+
+                // Opcional: Dar un poco de combustible por pasar de ronda
+                nave.agregarCombustible(10f);
+            }
         }
 
-        // Si no quedan enemigos, pasamos a la siguiente ronda
-        if (enemigos.isEmpty() && enemigosPendientes.isEmpty()) {
+        // --- 3. DIBUJADO ---
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-            // 1. Aumentar dificultad
-            ronda++;
-            velXAsteroides += 1;
-            velYAsteroides += 1;
-            cantAsteroides += 5;
+        batch.setProjectionMatrix(camera.combined);
 
-            // 2. Generar la nueva oleada EN ESTA MISMA PANTALLA
-            iniciarRonda();
+        batch.begin();
 
-            // 3. ACTIVAR EL MENSAJE
-            anuncioRondaTimer = 3.0f;
+        // 1. FONDO (Primero)
+        batch.draw(backgroundTexture, 0, 0, viewport.getWorldWidth(), viewport.getWorldHeight());
 
-            // Opcional: Dar un poco de combustible por pasar de ronda
-            nave.agregarCombustible(10f);
+        // 2. SPRITES (En medio)
+        for (PowerUp p : powerUps) p.draw(batch);
+        for (Bullet b : balasJugador) b.draw(batch);
+        for (Bullet b : balasEnemigas) b.draw(batch);
+        for (EntidadJuego e : enemigos) e.draw(batch);
+        nave.draw(batch);
+
+        // 3. MENSAJE DE RONDA (Encima de las naves)
+        if (anuncioRondaTimer > 0) {
+            anuncioRondaTimer -= delta;
+
+            game.getFont().setColor(1, 1, 0, 1); // Amarillo
+            game.getFont().getData().setScale(3.0f);
+            game.getFont().draw(batch,
+                "RONDA " + ronda,
+                0,                  // Empieza en X = 0
+                Config.ALTO_MUNDO / 2 + 50,       // Altura: Mitad de 800 (+ un poco arriba)
+                1200,               // Ancho objetivo: Todo el ancho del mundo (1200)
+                com.badlogic.gdx.utils.Align.center, // Alineación: CENTRO
+                false);
+
+            game.getFont().setColor(1, 1, 1, 1); // Restaurar Blanco
+            game.getFont().getData().setScale(1.0f); // Restaurar tamaño
         }
 
+        // 4. HUD (Encima de todo)
+        dibujaEncabezado();
 
+        batch.end();
 
-
-
-
-
-
-
-
-
-
+        if (isPaused) {
+            dibujaMenuPausa();
+        }
     }
 
 
     public boolean agregarBala(Bullet bb) {
-    	return balasJugador.add(bb);
+        return balasJugador.add(bb);
     }
 
     public boolean agregarBalaEnemiga(Bullet bb) {
         return balasEnemigas.add(bb);
     }
 
-	@Override
-	public void show() {
-		// TODO Auto-generated method stub
+    public void agregarEnemigo(EntidadJuego enemigo) {
+        this.enemigosEntrantes.add(enemigo);
+    }
 
-	}
+    @Override
+    public void show() {
+        // TODO Auto-generated method stub
 
-	@Override
-	public void resize(int width, int height) {
+    }
+
+    @Override
+    public void resize(int width, int height) {
         viewport.update(width, height, true);
 
-	}
+    }
 
-	@Override
-	public void pause() {
-		// TODO Auto-generated method stub
+    @Override
+    public void pause() {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public void resume() {
-		// TODO Auto-generated method stub
+    @Override
+    public void resume() {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public void hide() {
-		// TODO Auto-generated method stub
+    @Override
+    public void hide() {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public void dispose() {
-		// TODO Auto-generated method stub
-		this.explosionSound.dispose();
+    @Override
+    public void dispose() {
+        // TODO Auto-generated method stub
+        this.explosionSound.dispose();
 
         this.txBarra.dispose();
         this.txEnemigo.dispose();
         this.txAsteroide.dispose();
         this.txTank.dispose();
-	}
+        txPowerFuel.dispose();
+        txPowerAliado.dispose();
+        txHealer.dispose();
+        soundHeal.dispose();
+        soundHealerDown.dispose();
+        shapeRenderer.dispose();
+        txEliminaBuffs.dispose();
+        txCargueroSmall.dispose();
+        txCargueroBig.dispose();
+    }
 
     public void crearPowerUpEn(float x, float y, TipoPowerUp tipo) {
         PowerUp p = null;
@@ -456,15 +528,15 @@ public class PantallaJuego implements Screen {
                 break;
             case COMBUSTIBLE:
 
-                p = new PowerUpCombustible(x, y, powerUpTexture);
+                p = new PowerUpCombustible(x, y, this.txPowerFuel);
                 break;
             case NAVE_ALIADA:
-                p = new PowerUpAliado(x, y, powerUpTexture);
+                p = new PowerUpAliado(x, y, this.txPowerAliado);
                 break;
 
             case ESCUDO:
 
-                p = new PowerUpEscudo(x, y, powerUpTexture);
+                p = new PowerUpEscudo(x, y, this.txEscudo);
                 break;
         }
 
@@ -502,11 +574,6 @@ public class PantallaJuego implements Screen {
         }
     }
 
-    //Para que enemigo EliminaBuffs sepa donde estan.
-    public ArrayList<PowerUp> getPowerUps() {
-        return this.powerUps;
-    }
-
     /**
      * Pausa el juego actual y muestra la pantalla de selección de mejoras.
      */
@@ -523,86 +590,146 @@ public class PantallaJuego implements Screen {
      * Ahora mezcla enemigos de T1 y T2 en rondas superiores.
      */
     private void iniciarRonda() {
-        // 1. Instanciamos LAS TRES factories
-        OleadaFactory factoryT1 = new EnemigoT1(txAsteroide, txEnemigo, txEliminaBuffs);
-        OleadaFactory factoryT2 = new EnemigoT2(txKamikazeS, txTank, txBalaEnemiga);
+        if (jefeActivo != null && !jefeActivo.estaDestruido()) {
+            return;
+        }
+
+        if (ronda % 5 == 0) {
+            // Limpiamos enemigos pendientes para que sea un duelo 1 vs 1
+            enemigosPendientes.clear();
+
+            // Creamos al jefe arriba del todo
+            Boss boss = new Boss(1200/2, 900, txBoss_1, txBalaEnemiga, 500);
+
+            // Lo guardamos en la variable especial y en la lista general
+            jefeActivo = boss;
+            enemigos.add(boss);
+
+            // Ponemos musica de jefe (Opcional si tienes)
+            return; // SALIMOS, no spawneamos nada más
+        }
+
+
+
+        // 1. Instanciamos AMBAS factories
+        OleadaFactory factoryT1 = new EnemigoT1(txAsteroide, txEnemigo,txEliminaBuffs );
+        OleadaFactory factoryT2 = new EnemigoT2(txKamikazeS, txTank, txBalaEnemiga, txHealer, soundHeal, soundHealerDown);
         OleadaFactory factoryT3 = new EnemigoT3(txCargueroSmall, txCargueroBig, txEnemigo, txKamikazeS, txTank, txEliminaBuffs, txBalaEnemiga);
-
+        // OBTENEMOS EL MULTIPLICADOR (Ej: 1.0 en ronda 1, 5.0 en ronda 40)
         float dificultad = getFactorDificultad();
-        Random r = new Random();
 
-        // Presupuesto: Aumenta 5 puntos por ronda
+        Random r = new Random();
         int presupuesto = 10 + ((ronda - 1) * 5);
 
         while (presupuesto > 0) {
+            // Usamos viewport.getWorldWidth() para que nazcan dentro del mundo lógico
             float x = r.nextInt((int)viewport.getWorldWidth() - 64);
-            // Spawnean más arriba para dar tiempo a que bajen
-            float y = Gdx.graphics.getHeight() + 50 + r.nextInt(400);
+            float y = Gdx.graphics.getHeight() + 50; // Ojo: Aquí podrías usar 800 + 50 si usas Viewport
 
             EntidadJuego nuevoEnemigo = null;
             int costo = 0;
 
-            // Tirada de probabilidad (0 a 100)
-            int dado = r.nextInt(100);
-
-            // --- TIER 3: CARGUEROS (Solo Ronda 5+) ---
-            // Probabilidad: 10% (0-9)
-            if (ronda >= 5 && dado < 10) {
-                if (presupuesto >= 12) {
-                    nuevoEnemigo = factoryT3.createEnemigoT2(x, y, this); // Carguero Big
-                    costo = 12;
-                } else if (presupuesto >= 6) {
-                    nuevoEnemigo = factoryT3.createEnemigoT1(x, y, this); // Carguero Small
-                    costo = 6;
+            // --- RONDA 1 ---
+            if (ronda == 1) {
+                if (r.nextBoolean()) {
+                    nuevoEnemigo = factoryT1.createEnemigoT1(x, y, this);
+                    // MODIFICADO: Le pasamos 'dificultad' al metodo del asteroide
+                    configurarAsteroide(nuevoEnemigo, r, dificultad);
+                } else {
+                    nuevoEnemigo = factoryT1.createEnemigoT2(x, y, this);
                 }
+                costo = 1;
             }
 
-            // --- TIER 2: TANQUES Y KAMIKAZES-S (Ronda 2+) ---
-            // Probabilidad: 30% (10-39) (O si falló el Tier 3 por presupuesto)
-            if (nuevoEnemigo == null && ronda >= 2 && dado < 40) {
-                if (presupuesto >= 3 && r.nextBoolean()) { // 50% entre Tanque y KamiS
+            // --- RONDA 2+ ---
+            else {
+                int dado = r.nextInt(100);
+
+
+                if (ronda > 7 && dado < 5 && presupuesto >= 10) {
+                    nuevoEnemigo = new Boss(x, y, txBoss_1, txBalaEnemiga, 150);
+                    costo = 10;
+                }
+
+                // CARGUEROS...
+                else if (ronda >= 4 && dado < 10 && presupuesto >= 8) {
+                    // ... (Tu código de cargueros sigue igual) ...
+                    if (r.nextBoolean() && presupuesto >= 12) {
+                        nuevoEnemigo = factoryT3.createEnemigoT2(x, y, this);
+                        costo = 12;
+                    } else {
+                        nuevoEnemigo = factoryT3.createEnemigoT1(x, y, this);
+                        costo = 8;
+                    }
+                }
+
+                // B. HEALER
+                else if (ronda >= 3 && dado < 20 && presupuesto >= 4) {
+                    nuevoEnemigo = factoryT2.createEnemigoT3(x, y, this);
+                    costo = 4;
+                }
+
+                // C. TANQUE
+                else if (dado < 30 && presupuesto >= 3) {
                     nuevoEnemigo = factoryT2.createEnemigoT2(x, y, this); // Tanque
                     costo = 3;
-                } else if (presupuesto >= 2) {
+                }
+                // D. ELIMINA BUFFS (Usamos Factory T1 - Tier 3)
+                else if (ronda >= 2 && dado < 55 && presupuesto >= 2) {
+                    // Probabilidad dedicada para EliminaBuffs
+                    nuevoEnemigo = factoryT1.createEnemigoT3(x, y, this);
+                    costo = 2; // (Ajusta el costo si quieres, 2 me parece bien)
+                }
+
+                // E. KAMIKAZE SUPER
+                else if (dado < 50 && presupuesto >= 2) {
                     nuevoEnemigo = factoryT2.createEnemigoT1(x, y, this); // Kamikaze S
                     costo = 2;
                 }
-            }
 
-            // --- TIER 1: BÁSICOS (Relleno y Ronda 1) ---
-            // Probabilidad: 60% (40-99) O si no alcanzó el presupuesto para los de arriba
-            if (nuevoEnemigo == null) {
-                if (presupuesto >= 1) {
-                    // Aquí decidimos entre Asteroide y (Kamikaze / EliminaBuffs)
-                    if (r.nextBoolean()) {
-                        // 50% Asteroide
-                        nuevoEnemigo = factoryT1.createEnemigoT1(x, y, this);
-                        configurarAsteroide(nuevoEnemigo, r, dificultad);
-                    } else {
-                        // 50% Kamikaze Normal (o EliminaBuffs, lo decide la Factory)
-                        nuevoEnemigo = factoryT1.createEnemigoT2(x, y, this);
-                    }
+                // F. KAMIKAZE NORMAL
+                else if (dado < 75 && presupuesto >= 1) {
+                    nuevoEnemigo = factoryT1.createEnemigoT2(x, y, this); // Kamikaze Normal
                     costo = 1;
-                } else {
-                    // Si no queda presupuesto ni para uno de coste 1, terminamos
-                    break;
+                }
+                //G. ASTEROIDE
+                else {
+                    if (presupuesto >= 1) {
+                        nuevoEnemigo = factoryT1.createEnemigoT1(x, y, this); // Asteroide
+                        // MODIFICADO: Le pasamos 'dificultad'
+                        configurarAsteroide(nuevoEnemigo, r, dificultad);
+                        costo = 1;
+                    } else {
+                        break;
+                    }
                 }
             }
 
-            // --- FINALIZAR CREACIÓN ---
+            // --- APLICAR LA DIFICULTAD A LOS ENEMIGOS INTELIGENTES ---
             if (nuevoEnemigo != null) {
-                // Aplicar dificultad a enemigos inteligentes
-                if (nuevoEnemigo instanceof Kamikaze) ((Kamikaze)nuevoEnemigo).aumentarDificultad(dificultad);
-                if (nuevoEnemigo instanceof KamikazeS) ((KamikazeS)nuevoEnemigo).aumentarDificultad(dificultad);
-                if (nuevoEnemigo instanceof NaveTanque) ((NaveTanque)nuevoEnemigo).aumentarDificultad(dificultad);
-                // Si tienes Carguero, podrías tener aumentarDificultad también, pero es opcional
 
-                // AÑADIR A PENDIENTES
+                // Si es Kamikaze, KamikazeS o Tanque (y si implementaste aumentarDificultad en ellos)
+                if (nuevoEnemigo instanceof Kamikaze) {
+                    ((Kamikaze) nuevoEnemigo).aumentarDificultad(dificultad);
+                }
+                else if (nuevoEnemigo instanceof KamikazeS) {
+                    ((KamikazeS) nuevoEnemigo).aumentarDificultad(dificultad);
+                }
+                // Si tienes clase Tanque, agrégala aquí también:
+                else if (nuevoEnemigo instanceof NaveTanque) { ((NaveTanque)nuevoEnemigo).aumentarDificultad(dificultad); }
+
+                else if (nuevoEnemigo instanceof EnemigoHealer) {
+                    ((EnemigoHealer) nuevoEnemigo).aumentarDificultad(dificultad);
+                }
+
                 enemigosPendientes.add(nuevoEnemigo);
                 presupuesto -= costo;
+            } else {
+                if (presupuesto < 1) break;
             }
         }
     }
+
 
     // MODIFICADO: Ahora recibe el float dificultad
     private void configurarAsteroide(EntidadJuego enemigo, Random r, float dificultad) {
@@ -633,15 +760,100 @@ public class PantallaJuego implements Screen {
         return 1.0f + ((ronda - 1) * 0.1f);
     }
 
-    // En PantallaJuego.java
 
-    /**
-     * Permite que otros objetos (como NaveCarguero) añadan enemigos al juego.
-     * @param enemigo El nuevo enemigo a añadir.
-     */
-    public void agregarEnemigo(EntidadJuego enemigo) {
-        // Lo añadimos directamente a la lista de enemigos activos
-        this.enemigosEntrantes.add(enemigo);
+    public ArrayList<EntidadJuego> getEnemigos() {
+        return this.enemigos;
+    }
+
+    // GETTER NECESARIO PARA ELIMINABUFFS
+    public ArrayList<PowerUp> getPowerUps() {
+        return this.powerUps;
+    }
+
+    private void dibujaMenuPausa() {
+        // 1. Velo Negro Transparente (Usando ShapeRenderer)
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0, 0, 0, 0.6f);
+        shapeRenderer.rect(0, 0, viewport.getWorldWidth(), viewport.getWorldHeight());
+        shapeRenderer.end();
+
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+
+        // 2. Texto "PAUSA" (Usando SpriteBatch)
+        batch.begin();
+        BuffManager buffs = BuffManager.getInstance();
+
+        // --- ENCABEZADO DE PAUSA ---
+        game.getFont().getData().setScale(3.0f);
+        game.getFont().draw(batch, "JUEGO EN PAUSA", 0, viewport.getWorldHeight() - 50, viewport.getWorldWidth(), 1, false);
+
+        game.getFont().getData().setScale(1.5f);
+        game.getFont().draw(batch, "Presiona Esc para continuar", 0, viewport.getWorldHeight() - 100, viewport.getWorldWidth(), 1, false);
+
+        // --- 2. INFORMACIÓN DEL JUGADOR (Columna Izquierda) ---
+        float xJugador = 100;
+        float yJugador = viewport.getWorldHeight() - 200;
+
+        game.getFont().getData().setScale(1.2f);
+        game.getFont().draw(batch, "=== JUGADOR ===", xJugador, yJugador);
+        yJugador -= 30;
+
+        game.getFont().draw(batch, "Nivel Actual Total: " + buffs.getTotalUpgradesApplied(), xJugador, yJugador);
+        yJugador -= 25;
+
+        // NIVEL DE ARMA ACTUAL
+        game.getFont().draw(batch, "Nivel de Arma: " + nave.getNivelArma(), xJugador, yJugador);
+        yJugador -= 25;
+
+        game.getFont().draw(batch, "Nivel de Maxima: " + BuffManager.getInstance().getMaxWeaponLevel(), xJugador, yJugador);
+        yJugador -= 25;
+
+        game.getFont().draw(batch, "Vida Máxima: " + (int)nave.getMaxCombustible(), xJugador, yJugador);
+        yJugador -= 25;
+        game.getFont().draw(batch, "Velocidad de Tiro: " + String.format("%.2f", buffs.getFireRateMultiplier()) + "x", xJugador, yJugador);
+        yJugador -= 25;
+        game.getFont().draw(batch, "Daño por Bala: " + buffs.getDamageMultiplier() + "x", xJugador, yJugador);
+        yJugador -= 25;
+        game.getFont().draw(batch, "Aliados: " + nave.getContadorAliados(), xJugador, yJugador);
+        yJugador -= 25;
+        game.getFont().draw(batch, "Escudo: " + (nave.getTieneEscudo() ? "ACTIVO" : "INACTIVO"), xJugador, yJugador);
+
+        // --- 3. INFORMACIÓN DEL ENEMIGO (Columna Derecha) ---
+        float xEnemigo = viewport.getWorldWidth() / 2 + 100; // Ajuste para que la columna empiece en 700
+        float yEnemigo = viewport.getWorldHeight() - 200;
+        float factorDificultad = getFactorDificultad();
+
+        // FACTORES GLOBALES DE UPGRADE (Aumentan por cada mejora del jugador)
+        float factorUpgradeVel = buffs.getEnemySpeedMultiplier();
+        float factorUpgradeHP = buffs.getEnemyHealthMultiplier();
+
+        game.getFont().getData().setScale(1.2f);
+        game.getFont().draw(batch, "=== AMENAZA (RONDA " + ronda + ") ===", xEnemigo, yEnemigo);
+        yEnemigo -= 30;
+
+        // FACTOR DE RONDA (Afecta a todo el juego)
+        game.getFont().draw(batch, "Factor de Ronda: " + String.format("%.2f", factorDificultad) + "x", xEnemigo, yEnemigo);
+        yEnemigo -= 25;
+
+        // VELOCIDAD ENEMIGA: Factor de Ronda x Factor Upgrade
+        game.getFont().draw(batch, "Velocidad Base Enemiga: " + String.format("%.2f", factorUpgradeVel) + "x (Global)", xEnemigo, yEnemigo);
+        yEnemigo -= 25;
+
+        // VIDA ENEMIGA: Factor de Ronda x Factor Upgrade
+        game.getFont().draw(batch, "Vida Base Enemiga: " + String.format("%.2f", factorUpgradeHP) + "x (Global)", xEnemigo, yEnemigo);
+        yEnemigo -= 25;
+
+        game.getFont().draw(batch, "Spawn Rate: " + String.format("%.2f", buffs.getEnemySpawnRateMultiplier()) + "x", xEnemigo, yEnemigo);
+        yEnemigo -= 25;
+        game.getFont().draw(batch, "Próximo Jefe: Ronda " + (ronda + (5 - (ronda % 5))), xEnemigo, yEnemigo);
+
+
+        game.getFont().getData().setScale(1.0f); // Restaurar tamaño
+        batch.end();
     }
 
 

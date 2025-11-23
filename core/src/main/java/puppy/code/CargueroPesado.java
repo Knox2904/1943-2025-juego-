@@ -51,9 +51,17 @@ public class CargueroPesado extends EntidadJuego {
 
         spr.setPosition(position.x, position.y);
 
-        // 2. SPAWNER (Cada 5 segundos)
+
+        if (enHit) {
+            tiempoHit -= delta;
+            if (tiempoHit <= 0) {
+                enHit = false;
+                this.spr.setColor(1, 1, 1, 1); // Volver a Blanco
+            }
+        }
+        // 2. SPAWNER (Cada 3 segundos)
         spawnTimer += delta;
-        if (spawnTimer > 5.0f) {
+        if (spawnTimer > 3.0f) {
             spawnTimer = 0;
             spawnearHijo(juego);
         }

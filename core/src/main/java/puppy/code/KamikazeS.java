@@ -178,12 +178,20 @@ public class KamikazeS extends EntidadJuego {
         return hitbox;
     }
 
-    public void aumentarDificultad(float factor) {
-        this.multiplicadorDificultad = factor; // Guardamos el factor para el disparo
-        this.velocidadPEI *= factor;           // Aumentamos la velocidad de vuelo
+    public void aumentarDificultad(float factorRonda) {
+        // 1. OBTENEMOS EL FACTOR DE UPGRADES
+        float factorUpgradeVelocidad = BuffManager.getInstance().getEnemySpeedMultiplier();
 
-        // Tope de velocidad
-        if (this.velocidadPEI > 900) this.velocidadPEI = 900;
+        // 2. ESCALADO DE VELOCIDAD
+        this.velocidadPEI *= factorRonda * factorUpgradeVelocidad;
+
+        // 3. ESCALADO DE CADENCIA DE DISPARO
+        this.multiplicadorDificultad = factorRonda * factorUpgradeVelocidad;
+
+        // Tope de velocidad (Se mantiene)
+        if (this.velocidadPEI > 1100) {
+            this.velocidadPEI = 1100;
+        }
     }
 
 

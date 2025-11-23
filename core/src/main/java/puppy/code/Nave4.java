@@ -344,4 +344,14 @@ public class Nave4 extends GameObject implements IDestruible {
         }
     }
 
+    public boolean getTieneEscudo() {
+        return this.tieneEscudo ;
+    }
+    public int getContadorAliados() {
+        return this.aliados.size();
+    }
+    public int getNivelArma() {
+        return this.nivelArma;
+    }
+
 }
