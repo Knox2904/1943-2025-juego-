@@ -417,7 +417,7 @@ public class PantallaJuego implements Screen {
                 iniciarRonda();
 
                 anuncioRondaTimer = 3.0f;
-                nave.agregarCombustible(10f);
+                nave.agregarCombustible(20f);
             }
         }
 
