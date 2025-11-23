@@ -69,6 +69,7 @@ public class PantallaJuego implements Screen {
     private Boss jefeActivo = null;
     private Texture txBarraBoss;
     private Texture txBoss_1;
+    private BossThomas thomasBoss;
 
 
     private Sound soundShieldBreak;
@@ -126,6 +127,10 @@ public class PantallaJuego implements Screen {
         soundHealerDown = Gdx.audio.newSound(Gdx.files.internal("healerSinBateria.mp3"));
 
         txBoss_1 = new Texture(Gdx.files.internal("Boss1.png"));
+        Texture txThomas = new Texture(Gdx.files.internal("BossThomas.png"));
+        Texture txBalaBoss = new Texture(Gdx.files.internal("Rocket2.png"));
+        int vidaTotalThomas = 2500;
+
 
         // Crear textura barra
         com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(1, 1, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
@@ -146,6 +151,16 @@ public class PantallaJuego implements Screen {
             texturaAliado,
             txEscudo,
             soundShieldBreak
+        );
+
+        //thomas
+        thomasBoss = new BossThomas(
+            Gdx.graphics.getWidth() / 2, // Centro X
+            Gdx.graphics.getHeight() + 200, // Fuera de pantalla, arriba
+            txThomas,
+            txBalaBoss,
+            vidaTotalThomas,
+            nave // Tu objeto jugador (Nave4/NaveTanque)
         );
 
 
@@ -413,6 +428,10 @@ public class PantallaJuego implements Screen {
         // --- 3. DIBUJADO ---
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        if (thomasBoss != null) {
+            thomasBoss.drawWarning(shapeRenderer);
+        }
+
         batch.setProjectionMatrix(camera.combined);
 
         batch.begin();
@@ -594,16 +613,21 @@ public class PantallaJuego implements Screen {
             return;
         }
 
-        if (ronda % 5 == 0) {
+        if (ronda == 2) {
             // Limpiamos enemigos pendientes para que sea un duelo 1 vs 1
             enemigosPendientes.clear();
 
+            thomasBoss.position.y = 900;
+
             // Creamos al jefe arriba del todo
-            Boss boss = new Boss(1200/2, 900, txBoss_1, txBalaEnemiga, 500);
+            //Boss boss = new Boss(1200/2, 900, txBoss_1, txBalaEnemiga, 500);
 
             // Lo guardamos en la variable especial y en la lista general
-            jefeActivo = boss;
-            enemigos.add(boss);
+            jefeActivo = thomasBoss;
+            enemigos.add(thomasBoss);
+
+            //jefeActivo = boss;
+            //enemigos.add(boss);
 
             // Ponemos musica de jefe (Opcional si tienes)
             return; // SALIMOS, no spawneamos nada más
@@ -645,7 +669,7 @@ public class PantallaJuego implements Screen {
             else {
                 int dado = r.nextInt(100);
 
-
+                // A. Jefe 1
                 if (ronda > 7 && dado < 5 && presupuesto >= 10) {
                     nuevoEnemigo = new Boss(x, y, txBoss_1, txBalaEnemiga, 150);
                     costo = 10;

@@ -15,7 +15,7 @@ public class Boss extends EntidadJuego {
     // Fases del Jefe
     // 0: Entrando, 1: Fase Normal, 2: Fase Furiosa (50% vida)
     private int fase = 0;
-    private float tiempoVida = 0;
+    protected float tiempoVida = 0;
 
     public Boss(float x, float y, Texture tx, Texture txBala , int vidaInicial) {
         // Velocidad baja (se mueve lento), Vida 500 (¡Es un tanque!)
@@ -82,7 +82,7 @@ public class Boss extends EntidadJuego {
         position.y = 600 + MathUtils.cos(tiempoVida * 1.0f) * 50f;
     }
 
-    private void disparar(float delta, PantallaJuego juego) {
+    protected void disparar(float delta, PantallaJuego juego) {
         fireTimer += delta;
         if (fireTimer > tiempoEntreDisparos) {
             fireTimer = 0;
