@@ -14,7 +14,7 @@ public class Boss extends EntidadJuego {
 
     // Fases del Jefe
     // 0: Entrando, 1: Fase Normal, 2: Fase Furiosa (50% vida)
-    private int fase = 0;
+    protected int fase = 0;
     protected float tiempoVida = 0;
 
     public Boss(float x, float y, Texture tx, Texture txBala , int vidaInicial) {
@@ -76,7 +76,7 @@ public class Boss extends EntidadJuego {
         }
     }
 
-    private void movimientoCombate(float delta) {
+    protected void movimientoCombate(float delta) {
         // Movimiento en "Ocho" (Infinito) lento
         position.x = (1200 / 2 - spr.getWidth()/2) + MathUtils.sin(tiempoVida * 0.5f) * 300f;
         position.y = 600 + MathUtils.cos(tiempoVida * 1.0f) * 50f;

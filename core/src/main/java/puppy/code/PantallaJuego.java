@@ -51,6 +51,9 @@ public class PantallaJuego implements Screen {
     private Texture txEliminaBuffs;
     private Texture txCargueroSmall;
     private Texture txCargueroBig;
+    private Texture txBoss_1;
+    private Texture txBossThomas; // Promovida a global
+    private Texture txBalaBoss;
     private OleadaFactory factory;
     //  Variables añadidas
     private ArrayList<EntidadJuego> enemigos = new ArrayList<>();
@@ -68,8 +71,6 @@ public class PantallaJuego implements Screen {
 
     private Boss jefeActivo = null;
     private Texture txBarraBoss;
-    private Texture txBoss_1;
-    private BossThomas thomasBoss;
 
 
     private Sound soundShieldBreak;
@@ -127,9 +128,8 @@ public class PantallaJuego implements Screen {
         soundHealerDown = Gdx.audio.newSound(Gdx.files.internal("healerSinBateria.mp3"));
 
         txBoss_1 = new Texture(Gdx.files.internal("Boss1.png"));
-        Texture txThomas = new Texture(Gdx.files.internal("BossThomas.png"));
-        Texture txBalaBoss = new Texture(Gdx.files.internal("Rocket2.png"));
-        int vidaTotalThomas = 2500;
+        txBossThomas = new Texture(Gdx.files.internal("BossThomas.png")); // Asegurate que el archivo exista
+        txBalaBoss = new Texture(Gdx.files.internal("Rocket2.png"));
 
 
         // Crear textura barra
@@ -153,15 +153,7 @@ public class PantallaJuego implements Screen {
             soundShieldBreak
         );
 
-        //thomas
-        thomasBoss = new BossThomas(
-            Gdx.graphics.getWidth() / 2, // Centro X
-            Gdx.graphics.getHeight() + 200, // Fuera de pantalla, arriba
-            txThomas,
-            txBalaBoss,
-            vidaTotalThomas,
-            nave // Tu objeto jugador (Nave4/NaveTanque)
-        );
+
 
 
 
@@ -237,6 +229,9 @@ public class PantallaJuego implements Screen {
 
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        if (jefeActivo instanceof BossThomas && !jefeActivo.estaDestruido()) {
+            ((BossThomas) jefeActivo).drawWarning(shapeRenderer);
+        }
 
         if (!isPaused) {
             // --- 1. ACTUALIZACIONES ---
@@ -428,9 +423,6 @@ public class PantallaJuego implements Screen {
         // --- 3. DIBUJADO ---
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        if (thomasBoss != null) {
-            thomasBoss.drawWarning(shapeRenderer);
-        }
 
         batch.setProjectionMatrix(camera.combined);
 
@@ -535,6 +527,9 @@ public class PantallaJuego implements Screen {
         txEliminaBuffs.dispose();
         txCargueroSmall.dispose();
         txCargueroBig.dispose();
+        txBossThomas.dispose();
+        txBoss_1.dispose();
+        txBalaBoss.dispose();
     }
 
     public void crearPowerUpEn(float x, float y, TipoPowerUp tipo) {
@@ -613,25 +608,44 @@ public class PantallaJuego implements Screen {
             return;
         }
 
-        if (ronda == 2) {
+        if (ronda % 5 == 0 ) {
             // Limpiamos enemigos pendientes para que sea un duelo 1 vs 1
             enemigosPendientes.clear();
 
-            thomasBoss.position.y = 900;
+            OleadaFactory factoryBoss = new EnemigoT4(txBoss_1, txBalaEnemiga, txBossThomas);
 
-            // Creamos al jefe arriba del todo
-            //Boss boss = new Boss(1200/2, 900, txBoss_1, txBalaEnemiga, 500);
+            EntidadJuego jefe = null;
+            float cx = viewport.getWorldWidth() / 2; // Centro X
+            float cy = 900; // Arriba Y
 
-            // Lo guardamos en la variable especial y en la lista general
-            jefeActivo = thomasBoss;
-            enemigos.add(thomasBoss);
+            // 2. Selección de Jefe
+            if (ronda == 5) {
+                jefe = factoryBoss.createEnemigoT1(cx - 125, cy, this); // Boss 1
+            }
+            else if (ronda == 10) {
+                jefe = factoryBoss.createEnemigoT2(cx, cy, this); // Thomas
+            }
+            else if (ronda >= 15) {
+                // Por ahora repetimos T1 o T2 aleatorio hasta tener el T3
+                if(MathUtils.randomBoolean())
+                    jefe = factoryBoss.createEnemigoT1(cx - 125, cy, this);
+                else
+                    jefe = factoryBoss.createEnemigoT2(cx, cy, this);
+            }
+            else {
+                // Fallback
+                jefe = factoryBoss.createEnemigoT1(cx - 125, cy, this);
+            }
 
-            //jefeActivo = boss;
-            //enemigos.add(boss);
+            // 3. Asignar
+            if (jefe instanceof Boss) {
+                jefeActivo = (Boss) jefe;
+                enemigos.add(jefe);
+            }
 
-            // Ponemos musica de jefe (Opcional si tienes)
-            return; // SALIMOS, no spawneamos nada más
+            return; // FIN, no spawneamos enemigos normales
         }
+
 
 
 

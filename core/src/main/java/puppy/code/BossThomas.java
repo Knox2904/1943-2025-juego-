@@ -8,55 +8,80 @@ import com.badlogic.gdx.math.Vector2;
 
 public class BossThomas extends Boss {
 
-    // --- Máquina de Estados (Específica para Thomas) ---
     private enum EstadoThomas {
-        ENTRANDO,            // Heredado de fase 0
-        BUSCANDO,            // Se mueve lentamente hacia el jugador
-        PREPARANDO_EMBESTIDA, // Se detiene y advierte (iluminación)
-        EMBISTIENDO,         // Movimiento rápido
-        REPOSICIONANDO       // Vuelve a la parte superior si choca contra borde
+        ENTRANDO,
+        BUSCANDO,
+        PREPARANDO_EMBESTIDA,
+        EMBISTIENDO,
+        REPOSICIONANDO
     }
 
     private EstadoThomas estadoThomas = EstadoThomas.ENTRANDO;
-
-    // --- Propiedades del Jefe ---
     private Nave4 nave;
-    private float velocidadBusqueda = 200f; // Más rápido que el Boss base
-    private float velocidadEmbestida = 1000f; // Muy rápido
-    private float tiempoPreparacion = 1.2f; // Tiempo de advertencia (1.2s)
-    private float temporizadorAtaque = 0; // Temporizador para gestionar los estados
 
-    private final float TIEMPO_MAX_BUSQUEDA = 4.0f; // Cuánto tiempo busca antes de embestir
+    // --- Configuración de Velocidades ---
+    // Fase 1
+    private final float VEL_CARGA_NORMAL = 1100f;
+    private final float TIEMPO_PREP_NORMAL = 1.0f;
+    private final float TIEMPO_BUSQUEDA_NORMAL = 3.0f;
 
-    // Almacena el punto hacia donde va a embestir (donde estaba el jugador)
+    // Fase 2 (Furia)
+    private final float VEL_CARGA_FURIA = 2200f; // ¡Hiper Velocidad!
+    private final float TIEMPO_PREP_FURIA = 0.5f; // Menos tiempo para reaccionar
+    private final float TIEMPO_BUSQUEDA_FURIA = 0.5f; // Casi no espera entre ataques
+
+    // Variables dinámicas
+    private float velocidadActualEmbestida;
+    private float tiempoPreparacionActual;
+    private float tiempoBusquedaActual;
+
+    private float velocidadBusqueda = 180f;
+    private float temporizadorAtaque = 0;
+
+    // Vectores
     private Vector2 objetivoEmbestida = new Vector2();
-    // Guarda la dirección de la embestida una vez calculada
     private Vector2 direccionEmbestida = new Vector2();
 
+    // Variable para no matar al jugador en 1 frame (Cooldown de daño por contacto)
+    private float tiempoInmuneContacto = 0;
 
     public BossThomas(float x, float y, Texture tx, Texture txBala, int vidaInicial, Nave4 nave) {
         super(x, y, tx, txBala, vidaInicial);
         this.nave = nave;
-        // Ajustamos el sprite para que se parezca más a un tren lateral si es necesario
-        // spr.setSize(250, 100);
     }
-
-    // --- INVALICIÓN DEL UPDATE PARA INTEGRAR ESTADOS DE EMBESTIDA ---
 
     @Override
     public void update(float delta, PantallaJuego juego) {
-        tiempoVida += delta;
+        // 1. Actualizar lógica base (colores de daño, fases de vida, etc)
+        super.update(delta, juego);
+
         temporizadorAtaque += delta;
+        if (tiempoInmuneContacto > 0) tiempoInmuneContacto -= delta;
 
-        // Heredamos la lógica de cambio de fase y feedback visual de golpe
-        super.update(0, juego); // Llamada con delta 0 para que no ejecute el movimientoCombate y Disparar base
+        // --- CONFIGURACIÓN SEGÚN FASE (Heredada de Boss) ---
+        if (this.fase == 2) {
+            // FASE 2: MODO PESADILLA
+            velocidadActualEmbestida = VEL_CARGA_FURIA;
+            tiempoPreparacionActual = TIEMPO_PREP_FURIA;
+            tiempoBusquedaActual = TIEMPO_BUSQUEDA_FURIA;
 
-        // --- MÁQUINA DE ESTADOS ESPECÍFICA DE THOMAS ---
+            // Visual: Vibrar más fuerte o ponerse rojo constante
+            if (estadoThomas != EstadoThomas.PREPARANDO_EMBESTIDA) {
+                // Solo cambiamos color si no está parpadeando por daño
+                if(!enHit) spr.setColor(1f, 0.3f, 0.3f, 1f);
+            }
+        } else {
+            // FASE 1: NORMAL
+            velocidadActualEmbestida = VEL_CARGA_NORMAL;
+            tiempoPreparacionActual = TIEMPO_PREP_NORMAL;
+            tiempoBusquedaActual = TIEMPO_BUSQUEDA_NORMAL;
+        }
+
+        // --- MÁQUINA DE ESTADOS ---
         switch (estadoThomas) {
             case ENTRANDO:
-                // Hereda la lógica de entrada de la clase Boss (fase 0)
                 if (position.y > 600) {
-                    position.y -= 50 * delta;
+                    position.y -= 150 * delta;
                 } else {
                     estadoThomas = EstadoThomas.BUSCANDO;
                     temporizadorAtaque = 0;
@@ -64,66 +89,80 @@ public class BossThomas extends Boss {
                 break;
 
             case BUSCANDO:
-                movimientoBusqueda(delta); // Mueve lentamente al jugador
-                if (temporizadorAtaque > TIEMPO_MAX_BUSQUEDA) {
+                movimientoBusqueda(delta);
+
+                // --- CAMBIO: SOLO DISPARA EN FASE 1 ---
+                // En fase 2 está demasiado ocupado embistiendo
+                if (this.fase == 1) {
+                    super.disparar(delta, juego);
+                }
+
+                if (temporizadorAtaque > tiempoBusquedaActual) {
                     prepararEmbestida();
                 }
                 break;
 
             case PREPARANDO_EMBESTIDA:
-                // Se detiene y espera a que termine el tiempo de advertencia
-                if (temporizadorAtaque > tiempoPreparacion) {
+                // EFECTO VISUAL: VIBRACIÓN INTENSA
+                float intensidad = (fase == 2) ? 10f : 5f;
+                float offsetX = MathUtils.random(-intensidad, intensidad);
+                float offsetY = MathUtils.random(-intensidad, intensidad);
+                spr.setPosition(position.x + offsetX, position.y + offsetY);
+
+                // En fase 1 puede disparar mientras prepara, en fase 2 no.
+                if (this.fase == 1) {
+                    super.disparar(delta, juego);
+                }
+
+                if (temporizadorAtaque > tiempoPreparacionActual) {
                     iniciarEmbestida();
                 }
                 break;
 
             case EMBISTIENDO:
-                movimientoEmbestida(delta); // Mueve rápidamente
-                comprobarLimitesMapa(Config.ALTO_MUNDO);
+                movimientoEmbestida(delta);
+                comprobarLimitesMapa();
                 break;
 
             case REPOSICIONANDO:
-                reposicionarThomas(Config.ANCHO_MUNDO, Config.ALTO_MUNDO);
+                reposicionarThomas();
                 break;
         }
 
-        // --- COMPORTAMIENTO DE DISPARO (Aplica en BUSCANDO y EMBISTIENDO) ---
-        if (estadoThomas == EstadoThomas.BUSCANDO || estadoThomas == EstadoThomas.PREPARANDO_EMBESTIDA) {
-            // Se puede hacer que dispare mientras busca o prepara el ataque
-            disparar(delta, juego);
+        // Si NO estamos vibrando, actualizamos la posición normal del sprite
+        if (estadoThomas != EstadoThomas.PREPARANDO_EMBESTIDA) {
+            spr.setPosition(position.x, position.y);
         }
 
-        // Actualiza la posición y el hitbox
-        spr.setPosition(position.x, position.y);
-
-        if (enHit) {
-            tiempoHit -= delta;
-            if (tiempoHit <= 0) {
-                enHit = false;
-                this.spr.setColor(1, 1, 1, 1); // Volver a Blanco
-            }
-        }
+        // Mantener hitbox sincronizada
+        getHitbox().setPosition(position.x + 25, position.y + 15);
     }
 
-    // --- LÓGICA DE MOVIMIENTO DE THOMAS ---
+    // --- MÉTODOS DE ESTADO ---
 
     private void movimientoBusqueda(float delta) {
-        // 1. Calcula la dirección al jugador
-        Vector2 direccion = new Vector2(nave.getX() - position.x, nave.getY() - position.y).nor();
+        float targetX = nave.getX();
+        float diffX = targetX - position.x;
 
-        // 2. Mueve a Thomas lentamente
-        position.x += direccion.x * velocidadBusqueda * delta;
-        position.y += direccion.y * velocidadBusqueda * delta;
+        // En fase 2 se mueve lateralmente más rápido para buscarte
+        float velLateral = (fase == 2) ? 400f : velocidadBusqueda;
+
+        if (Math.abs(diffX) > 10) {
+            float signo = Math.signum(diffX);
+            position.x += signo * velLateral * delta;
+        }
+
+        position.y = 600 + MathUtils.sin(Gdx.graphics.getFrameId() * 0.05f) * 20;
     }
 
     private void prepararEmbestida() {
-        // 1. Guarda la posición actual del jugador como objetivo
+        // Guardar dónde está el jugador AHORA
         objetivoEmbestida.set(nave.getX(), nave.getY());
 
-        // 2. Calcula la dirección para la fase de embestida (normalizada)
+        // Calcular dirección (Extender el vector para que cruce el mapa)
+        // Simplemente calculamos la dirección normalizada
         direccionEmbestida.set(objetivoEmbestida.x - position.x, objetivoEmbestida.y - position.y).nor();
 
-        // 3. Transición
         temporizadorAtaque = 0;
         estadoThomas = EstadoThomas.PREPARANDO_EMBESTIDA;
     }
@@ -131,90 +170,88 @@ public class BossThomas extends Boss {
     private void iniciarEmbestida() {
         temporizadorAtaque = 0;
         estadoThomas = EstadoThomas.EMBISTIENDO;
-        // Opcional: Cambiar sprite a uno más agresivo
-        // spr.setColor(1f, 0, 0, 1f);
+        // Sonido de ataque aquí si quieres
     }
 
     private void movimientoEmbestida(float delta) {
-        // Mueve al jefe
-        position.x += direccionEmbestida.x * velocidadEmbestida * delta;
-        position.y += direccionEmbestida.y * velocidadEmbestida * delta;
+        // Movimiento Rectilíneo A TODA VELOCIDAD
+        position.x += direccionEmbestida.x * velocidadActualEmbestida * delta;
+        position.y += direccionEmbestida.y * velocidadActualEmbestida * delta;
 
-        // *** 💡 NUEVA LÓGICA DE COLISIÓN ***
-        // 1. Obtener la hitbox actualizada de Thomas
-        this.getHitbox().setPosition(position.x + 25, position.y + 15); // Asumo los offsets de tu Boss.getHitbox()
+        // Girar sprite
+        spr.rotate(1500 * delta);
 
-        // 2. Verificar colisión con el jugador
+        // COLISIÓN CON JUGADOR
         if (this.getHitbox().overlaps(nave.getHitbox())) {
-            // Aplica un gran daño al jugador
-            nave.recibirHit(50 , delta); // Ejemplo: 50 de daño por ser un jefe embistiendo
-
-            // Detiene la embestida inmediatamente tras el impacto y vuelve a buscar
-            estadoThomas = EstadoThomas.BUSCANDO;
-            temporizadorAtaque = 0;
-
-            // Opcional: añade un tiempo de invulnerabilidad temporal al jugador
-            // jugador.setInvulnerable(true, 1.0f);
+            if (tiempoInmuneContacto <= 0) {
+                // Daño masivo en fase 2
+                int dano = (fase == 2) ? 60 : 30;
+                nave.recibirHit(dano, delta);
+                tiempoInmuneContacto = 0.5f;
+            }
         }
     }
 
-    private void comprobarLimitesMapa(int altoMapa) {
-        int anchoMapa = Gdx.graphics.getWidth();
-
-        // Comprobar si choca con el borde del mapa
-        if (position.x < -spr.getWidth() || position.x > anchoMapa || position.y < -spr.getHeight() || position.y > altoMapa + spr.getHeight()) {
-            // Chocó con cualquier borde o se fue de la pantalla
+    private void comprobarLimitesMapa() {
+        // Si se sale, reposicionar
+        if (position.x < -500 || position.x > 1700 ||
+            position.y < -500 || position.y > 1500) {
             estadoThomas = EstadoThomas.REPOSICIONANDO;
             temporizadorAtaque = 0;
-            // Opcional: poner un efecto de choque
         }
     }
 
-    private void reposicionarThomas(int anchoMapa, int altoMapa) {
-        // 1. Teletransportar a una posición superior para reaparecer
-        position.x = anchoMapa / 2f - spr.getWidth() / 2f;
-        position.y = altoMapa + spr.getHeight(); // FUERA de la vista por arriba
+    private void reposicionarThomas() {
+        // Teletransporte
+        position.x = 1200 / 2 - spr.getWidth() / 2;
+        position.y = 900;
+        spr.setRotation(0);
 
-        // 2. Espera un breve momento (1 segundo) para simular que sale de escena
-        if (temporizadorAtaque > 1.0f) {
+        // En Fase 2, el reposicionamiento es casi instantáneo
+        float tiempoEspera = (fase == 2) ? 0.2f : 1.0f;
+
+        if (temporizadorAtaque > tiempoEspera) {
+            estadoThomas = EstadoThomas.ENTRANDO;
             temporizadorAtaque = 0;
-            estadoThomas = EstadoThomas.BUSCANDO;
         }
     }
 
-    // --- RENDERIZADO PARA LA ADVERTENCIA DEL CAMINO ---
+    // --- OVERRIDES PARA ANULAR PADRE ---
+    @Override
+    protected void movimientoCombate(float delta) { }
 
-    /**
-     * Dibuja la línea de advertencia cuando Thomas se está preparando para embestir.
-     * DEBE llamarse ANTES del SpriteBatch.begin() en PantallaJuego.render().
-     */
+    @Override
+    protected void disparar(float delta, PantallaJuego juego) { }
+
+    // --- DIBUJO DE ADVERTENCIA MEJORADO ---
     public void drawWarning(ShapeRenderer sr) {
         if (estadoThomas == EstadoThomas.PREPARANDO_EMBESTIDA) {
-
+            Gdx.gl.glEnable(Gdx.gl.GL_BLEND); // Activar transparencia
             sr.begin(ShapeRenderer.ShapeType.Filled);
-            // Color de advertencia: Naranja/Rojo translúcido
-            sr.setColor(1f, 0.5f, 0f, 0.6f);
 
-            float centroX = position.x + spr.getWidth() / 2;
-            float centroY = position.y + spr.getHeight() / 2;
+            // Color: En fase 1 Naranja, En fase 2 ROJO SANGRE
+            if (fase == 2) {
+                // Efecto parpadeo rápido
+                float alpha = 0.5f + MathUtils.sin(Gdx.graphics.getFrameId() * 20) * 0.3f;
+                sr.setColor(1f, 0f, 0f, alpha);
+            } else {
+                sr.setColor(1f, 0.5f, 0f, 0.5f);
+            }
 
-            // Dibuja una línea gruesa desde Thomas hasta el punto objetivo
-            // MathUtils.atan2 calcula el ángulo, MathUtils.cosDeg/sinDeg la dirección
-            sr.rectLine(centroX, centroY,
-                objetivoEmbestida.x, objetivoEmbestida.y,
-                40f); // 40f es el grosor del camino
+            float cx = position.x + spr.getWidth()/2;
+            float cy = position.y + spr.getHeight()/2;
+
+            // Calculamos un punto final muy lejano en la dirección del ataque
+            // para que la línea atraviese toda la pantalla
+            float finX = cx + direccionEmbestida.x * 3000;
+            float finY = cy + direccionEmbestida.y * 3000;
+
+            // Dibuja el "Camino de la muerte" (rectLine dibuja una linea con grosor)
+            float grosor = (fase == 2) ? 80f : 50f; // Más grueso en fase 2
+            sr.rectLine(cx, cy, finX, finY, grosor);
 
             sr.end();
+            Gdx.gl.glDisable(Gdx.gl.GL_BLEND);
         }
     }
-
-    // --- INVALICIÓN DE MOVIMIENTO BASE ---
-
-
-    protected void movimientoCombate(float delta) {
-        // SOBREESCRIBIMOS el método de la clase Boss para que no ejecute
-        // el movimiento de "Ocho" (Infinito) y use la máquina de estados de Thomas.
-        // ¡No hacemos nada aquí!
-    }
-
 }
