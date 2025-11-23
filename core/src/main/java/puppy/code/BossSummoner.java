@@ -138,23 +138,28 @@ public class BossSummoner extends Boss {
 
     @Override
     public void aumentarDificultad(float factorRonda) {
+        // Llamamos al padre para que calcule la vida base "Jugable"
         super.aumentarDificultad(factorRonda);
 
-        // [BALANCEO] Cálculo agresivo de velocidad de spawn
-        // Ronda 20 (Factor ~2.9): 2.0 / 2.9 = 0.68 seg entre oleadas.
-        this.tiempoEntreSpawns = 2.0f / factorRonda;
-
-        // Límite de seguridad: Máximo 1 oleada cada 0.8 segundos
-        if (this.tiempoEntreSpawns < 0.8f) this.tiempoEntreSpawns = 0.8f;
-
-        // [BALANCEO] Cantidad de enemigos por oleada
-        // Ronda 1-9: 1 enemigo
-        // Ronda 10-19: 2 enemigos
-        // Ronda 20+: 3 enemigos simultáneos
-        this.cantidadPorSpawn = 1 + (int)(factorRonda * 0.7f);
-
-        // Vida extra alta (x1.5) porque es un blanco estático
+        // Ajuste extra de vida por ser estático (x1.5 en vez de una locura)
         this.vidaActual = (int)(this.vidaActual * 1.5f);
         this.vidaMax = this.vidaActual;
+
+        // [BALANCEO JUGABLE] Velocidad de Spawn
+        // Usamos raíz cuadrada para que no se vuelva una ametralladora de enemigos
+        // Ronda 100 (Factor 10.9) -> sqrt(10.9) = 3.3
+        // TiempoBase (2.0) / 3.3 = 0.6 seg entre oleadas (Muy rápido, pero posible)
+        float factorSuave = (float) Math.sqrt(factorRonda);
+
+        this.tiempoEntreSpawns = 2.0f / factorSuave;
+        if (this.tiempoEntreSpawns < 0.6f) this.tiempoEntreSpawns = 0.6f; // Tope humano
+
+        // [BALANCEO JUGABLE] Cantidad por Spawn
+        // Usamos logaritmo para que crezca muy lento.
+        // Ronda 1: 1 enemigo
+        // Ronda 20: 2 enemigos
+        // Ronda 100: 3 enemigos (Tope)
+        this.cantidadPorSpawn = 1 + (int)(Math.log(factorRonda) * 0.8);
+        if (this.cantidadPorSpawn > 3) this.cantidadPorSpawn = 3;
     }
 }

@@ -170,20 +170,29 @@ public class Boss extends EntidadJuego {
     protected void aumentarDificultad(float factorRonda) {
         float factorSalud = BuffManager.getInstance().getEnemyHealthMultiplier();
 
-        // 1. ESCALADO DE VIDA (Común a todos los jefes)
-        // La vida escalada se calcula a partir del valor base, NO del valor actual.
-        int nuevaVida = (int) (this.vidaBaseInicial * factorRonda * factorSalud);
+        // --- FÓRMULA "JUGABLE" (Soft Cap) ---
+
+        // 1. Factor de Ronda Suavizado:
+        // En vez de multiplicar x11 en ronda 100, elevamos a la 0.8.
+        // Ronda 100 (10.9) -> Se convierte en ~6.7x
+        double rondaSuave = Math.pow(factorRonda, 0.8);
+
+        // 2. Factor de Buffs del Jugador Suavizado:
+        // Usamos raíz cuadrada. Si el jugador tiene buff x11, el enemigo recibe x3.3
+        double saludSuave = Math.sqrt(factorSalud);
+
+        // CÁLCULO FINAL DE VIDA
+        int nuevaVida = (int) (this.vidaBaseInicial * rondaSuave * saludSuave);
 
         this.vidaActual = nuevaVida;
         this.vidaMax = nuevaVida;
 
-        // 2. ESCALADO DE DISPARO (Común a todos los jefes)
-        // Hacemos que la cadencia base del Boss genérico se acelere
+        // 2. ESCALADO DE DISPARO (Con límite humano)
+        // La cadencia aumenta, pero nunca dispara más rápido que 0.25s
         float nuevaCadencia = 1.0f / factorRonda;
-        this.tiempoEntreDisparos = nuevaCadencia;
-        if (this.tiempoEntreDisparos < 0.25f) this.tiempoEntreDisparos = 0.25f; // Tope de seguridad
+        if (nuevaCadencia < 0.25f) nuevaCadencia = 0.25f;
 
-        // No hay lógica específica de movimiento o spawn aquí, eso lo hacen las subclases.
+        this.tiempoEntreDisparos = nuevaCadencia;
     }
 
     public String getNombre() {
