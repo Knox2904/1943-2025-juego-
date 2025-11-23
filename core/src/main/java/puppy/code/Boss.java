@@ -12,22 +12,25 @@ public class Boss extends EntidadJuego {
     private float tiempoEntreDisparos = 1.0f; // Dispara cada segundo
     private Texture txBala;
     protected int vidaBaseInicial;
+    protected String nombre;
 
     private float timerCombustible = 0;
     // Cada 15 segundos cae una vida. Ajusta esto según la dificultad.
-    private final float TIEMPO_ENTRE_COMBUSTIBLES = 15.0f;
+    private final float TIEMPO_ENTRE_COMBUSTIBLES = 7.5f;
 
     // Fases del Jefe
     // 0: Entrando, 1: Fase Normal, 2: Fase Furiosa (50% vida)
     protected int fase = 0;
     protected float tiempoVida = 0;
 
-    public Boss(float x, float y, Texture tx, Texture txBala , int vidaInicial) {
+    public Boss(float x, float y, Texture tx, Texture txBala , int vidaInicial , String nombre) {
         // Velocidad baja (se mueve lento), Vida 500 (¡Es un tanque!)
         super(tx, x, y, 60f, vidaInicial);
         this.vidaBaseInicial = vidaInicial ;
         this.vidaMax = vidaInicial;
         this.txBala = txBala;
+
+        this.nombre = nombre;
 
 
         // LO HACEMOS GIGANTE
@@ -181,6 +184,14 @@ public class Boss extends EntidadJuego {
         if (this.tiempoEntreDisparos < 0.25f) this.tiempoEntreDisparos = 0.25f; // Tope de seguridad
 
         // No hay lógica específica de movimiento o spawn aquí, eso lo hacen las subclases.
+    }
+
+    public String getNombre() {
+        return this.nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
     }
 
 

@@ -38,6 +38,7 @@ public class BossThomas extends Boss {
     private float velocidadBusqueda = 180f;
     private float temporizadorAtaque = 0;
 
+    protected String nombre;
     // Vectores
     private Vector2 objetivoEmbestida = new Vector2();
     private Vector2 direccionEmbestida = new Vector2();
@@ -45,9 +46,10 @@ public class BossThomas extends Boss {
     // Variable para no matar al jugador en 1 frame (Cooldown de daño por contacto)
     private float tiempoInmuneContacto = 0;
 
-    public BossThomas(float x, float y, Texture tx, Texture txBala, int vidaInicial, Nave4 nave) {
-        super(x, y, tx, txBala, vidaInicial);
+    public BossThomas(float x, float y, Texture tx, Texture txBala, int vidaInicial, Nave4 nave , String nombre) {
+        super(x, y, tx, txBala, vidaInicial , "THOMAS EL ARRASADOR");
         this.nave = nave;
+        this.nombre = nombre ;
     }
 
     @Override

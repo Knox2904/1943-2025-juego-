@@ -560,7 +560,7 @@ public class PantallaJuego implements Screen {
     public void agregarScore(int puntos){
         score+=puntos;
         if (this.score >= proximaMejora) {
-            proximaMejora += 1000;
+            proximaMejora =(int) (proximaMejora * 1.2f);
             mostrarPantallaMejoras();
         }
     }
@@ -618,17 +618,20 @@ public class PantallaJuego implements Screen {
             // 2. Selección de Jefe
             if (ronda == 5) {
                 jefe = factoryBoss.createEnemigoT1(cx - 125, cy, this); // Boss 1
+                if (jefe instanceof Boss) ((Boss)jefe).setNombre("MOTHERSHIP OMEGA");
             }
             else if (ronda == 10) {
                 jefe = factoryBoss.createEnemigoT2(cx, cy, this); // Thomas
+                if (jefe instanceof Boss) ((Boss)jefe).setNombre("THOMAS EL ARRASADOR");
             }
             else if (ronda >= 15) {
-
-                jefe = factoryBoss.createEnemigoT3(cx - 150, cy, this);
+                jefe = factoryBoss.createEnemigoT3(cx - 150, cy, this); // BlackShip
+                if (jefe instanceof Boss) ((Boss)jefe).setNombre("TITÁN DE MATERIA OSCURA");
             }
             else {
-                // Fallback por seguridad
+                // Fallback (Jefe Aleatorio o Repetido)
                 jefe = factoryBoss.createEnemigoT1(cx - 125, cy, this);
+                if (jefe instanceof Boss) ((Boss)jefe).setNombre("MOTHERSHIP BETA");
             }
 
             // 3. Asignar
@@ -680,8 +683,31 @@ public class PantallaJuego implements Screen {
                 int dado = r.nextInt(100);
 
                 // A. Jefe 1 (Mantener como posibilidad si no es ronda de jefe principal)
+                // A. MINI BOSSES VARIADOS (Ronda > 7)
                 if (ronda > 7 && dado < 5 && presupuesto >= 10) {
-                    nuevoEnemigo = new Boss(x, y, txBoss_1, txBalaEnemiga, 150);
+
+                    int tipoJefe = MathUtils.random(0, 2);
+                    // Vida reducida para versión "Elite" (Mini-Boss)
+                    int vidaElite = 300 + (ronda * 10);
+
+                    switch (tipoJefe) {
+                        case 0: // MOTHERSHIP
+                            Boss mBoss = new Boss(x, y, txBoss_1, txBalaEnemiga, vidaElite, "MOTHERSHIP (ELITE)");
+                            nuevoEnemigo = mBoss;
+                            break;
+
+                        case 1: // THOMAS
+                            // Thomas necesita al jugador ('nave') en su constructor
+                            BossThomas tBoss = new BossThomas(x, y, txBossThomas, txBalaEnemiga, vidaElite, nave, "THOMAS (PROTOTIPO)");
+                            nuevoEnemigo = tBoss;
+                            break;
+
+                        case 2: // BLACK SHIP
+                            // Aquí pasamos la textura del minion (txEnemigo o txKamikaze)
+                            BossBlackShip bBoss = new BossBlackShip(x, y, txBossBlackShip, txBalaEnemiga, txEnemigo, vidaElite, "BLACK SHIP (LIGERO)");
+                            nuevoEnemigo = bBoss;
+                            break;
+                    }
                     costo = 10;
                 }
 

@@ -1,6 +1,5 @@
 package puppy.code;
 
-import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 
 public class EnemigoT4 implements OleadaFactory {
@@ -12,7 +11,7 @@ public class EnemigoT4 implements OleadaFactory {
     // Boss 2
     private Texture txBossThomas;
 
-    // Boss 3 (NUEVO)
+    // Boss 3
     private Texture txBlackShip;
     private Texture txMinion; // Textura para el Kamikaze hijo
 
@@ -30,19 +29,23 @@ public class EnemigoT4 implements OleadaFactory {
 
     @Override
     public EntidadJuego createEnemigoT1(float x, float y, PantallaJuego juego) {
-        return new Boss(x, y, txBoss1, txBalaBoss, 500);
+        // Boss 1: Mothership
+        // Constructor: (x, y, textura, bala, vida, nombre)
+        return new Boss(x, y, txBoss1, txBalaBoss, 500, "MOTHERSHIP OMEGA");
     }
 
     @Override
     public EntidadJuego createEnemigoT2(float x, float y, PantallaJuego juego) {
-        return new BossThomas(x, y, txBossThomas, txBalaBoss, 800, juego.getNave());
+        // Boss 2: Thomas
+        // Constructor: (x, y, textura, bala, vida, naveObjetivo, nombre)
+        return new BossThomas(x, y, txBossThomas, txBalaBoss, 800, juego.getNave(), "THOMAS EL ARRASADOR");
     }
 
     @Override
     public EntidadJuego createEnemigoT3(float x, float y, PantallaJuego juego) {
-        // JEFE NIVEL 3: BLACK SHIP
-        // Vida: 1200 (Muy alta)
-        return new BossBlackShip(x, y, txBlackShip, txBalaBoss, txMinion);
+        // Boss 3: Black Ship
+        // Constructor: (x, y, textura, bala, minion, vida, nombre)
+        // Nota: Agregamos 1200 de vida y el nombre que faltaba
+        return new BossBlackShip(x, y, txBlackShip, txBalaBoss, txMinion, 1200, "TITÁN DE MATERIA OSCURA");
     }
 }
-
