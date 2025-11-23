@@ -51,4 +51,10 @@ public abstract class GameObject {
         return spr.getHeight();
     }
 
+    // --- NUEVO MÉTODO ---
+    public void setPosition(float x, float y) {
+        this.position.set(x, y);
+        this.spr.setPosition(x, y);
+    }
+
 }

@@ -465,6 +465,10 @@ public class PantallaJuego implements Screen {
         if (isPaused) {
             manejarInputPausa();
             dibujaMenuPausa();
+            if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+                reiniciarJuego();
+                return;
+            }
         }
     }
 
@@ -762,13 +766,26 @@ public class PantallaJuego implements Screen {
                     ((Boss) nuevoEnemigo).aumentarDificultad(dificultad);
                 }
 
+                // 2. CORRECCIÓN DE POSICIÓN (NUEVO) 🛠
+                // Verificamos si el enemigo se sale por la derecha y lo empujamos adentro
+                float anchoEnemigo = nuevoEnemigo.getHitbox().width; // O nuevoEnemigo.getWidth() si lo implementaste
+                float limiteDerecho = viewport.getWorldWidth();
 
+                if (nuevoEnemigo.getX() + anchoEnemigo > limiteDerecho) {
+                    // Lo movemos a la izquierda para que quepa justo en el borde
+                    nuevoEnemigo.setPosition(limiteDerecho - anchoEnemigo - 10, nuevoEnemigo.getY());
+
+                }
+
+                // Agregar a la lista
                 enemigosPendientes.add(nuevoEnemigo);
                 presupuesto -= costo;
             } else {
                 if (presupuesto < 1) break;
             }
         }
+
+
     }
 
 
@@ -822,6 +839,14 @@ public class PantallaJuego implements Screen {
 
         game.getFont().getData().setScale(1.5f);
         game.getFont().draw(batch, "Presiona Esc para continuar", 0, viewport.getWorldHeight() - 100, viewport.getWorldWidth(), 1, false);
+
+        // --- NUEVA LÍNEA ---
+        game.getFont().setColor(1, 0.5f, 0.5f, 1); // Un color rojizo para que destaque
+        game.getFont().draw(batch, "Presiona R para Reiniciar Partida",
+            0, viewport.getWorldHeight() - 130,
+            viewport.getWorldWidth(), 1, false);
+        game.getFont().setColor(1, 1, 1, 1); // Volver a blanco
+
 
         // --- 2. INFORMACIÓN DEL JUGADOR (Columna Izquierda) ---
         float xJugador = 100;
@@ -937,6 +962,31 @@ public class PantallaJuego implements Screen {
             explosionSound.play(config.getSoundVolume());
         }
     }
+
+    private void reiniciarJuego() {
+        // 1. Resetear las mejoras globales (IMPORTANTE)
+        // Si no haces esto, el jugador empieza la nueva partida super fuerte
+        BuffManager.getInstance().resetBuffs();
+
+        // 2. Detener música actual (para que empiece de nuevo limpia)
+        game.stopMusic();
+
+        // 3. Crear una nueva PantallaJuego con los VALORES INICIALES (Ronda 1, Score 0)
+        PantallaJuego nuevaPartida = new PantallaJuego(
+            this.game,
+            1,      // Ronda 1
+            100,    // Combustible inicial
+            0,      // Score 0
+            3, 3, 10 // Velocidad asteroides y cantidad inicial (Ajusta a tus valores base)
+        );
+
+        // 4. Cambiar la pantalla
+        game.setScreen(nuevaPartida);
+
+        // 5. Matar la pantalla actual para liberar memoria
+        this.dispose();
+    }
+
 
 
 }

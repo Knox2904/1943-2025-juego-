@@ -38,6 +38,11 @@ public class Carguero extends EntidadJuego {
             // Patrulla lateral suave
             position.x += MathUtils.sin(Gdx.graphics.getFrameId() * 0.01f) * 0.5f;
         }
+
+        if (position.x < 0) position.x = 0;
+        if (position.x > 1200 - spr.getWidth()) position.x = 1200 - spr.getWidth();
+
+
         spr.setPosition(position.x, position.y);
 
         // 2. Spawner (Cada 2 segundos)

@@ -55,6 +55,9 @@ public class CargueroPesado extends EntidadJuego {
             position.x = xInicial + MathUtils.sin(tiempoVida * 2.0f) * 150f;
         }
 
+        if (position.x < 0) position.x = 0;
+        if (position.x > 1200 - spr.getWidth()) position.x = 1200 - spr.getWidth();
+
         spr.setPosition(position.x, position.y);
 
 
