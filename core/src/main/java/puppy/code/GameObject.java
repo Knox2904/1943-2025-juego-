@@ -57,4 +57,8 @@ public abstract class GameObject {
         this.spr.setPosition(x, y);
     }
 
+    public void setColor(float r, float g, float b, float a) {
+        spr.setColor(r, g, b, a);
+    }
+
 }

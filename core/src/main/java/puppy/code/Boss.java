@@ -193,6 +193,9 @@ public class Boss extends EntidadJuego {
     public void setNombre(String nombre) {
         this.nombre = nombre;
     }
+    public void setColor(float r, float g, float b, float a) {
+        spr.setColor(r, g, b, a);
+    }
 
 
 }

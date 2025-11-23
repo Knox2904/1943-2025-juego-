@@ -54,6 +54,7 @@ public class PantallaJuego implements Screen {
     private Texture txBossThomas; // [MEJORADO: Agregada]
     private Texture txBalaBoss; // [MEJORADO: Agregada]
     private Texture txBossBlackShip ;
+    private Texture txSummoner ;
     private OleadaFactory factory;
     //  Variables añadidas
     private ArrayList<EntidadJuego> enemigos = new ArrayList<>();
@@ -143,6 +144,7 @@ public class PantallaJuego implements Screen {
         txBossBlackShip = new Texture(Gdx.files.internal("BlackShip.png")) ;
         txBossThomas = new Texture(Gdx.files.internal("BossThomas.png"));
         txBalaBoss = new Texture(Gdx.files.internal("Rocket2.png"));
+        txSummoner = new Texture(Gdx.files.internal("OVERLORD.png"));
 
 
         // Crear textura barra
@@ -531,6 +533,7 @@ public class PantallaJuego implements Screen {
         txBalaBoss.dispose();
         txBossBlackShip.dispose();
         soundCombustible.dispose();// [MEJORADO: Agregada]
+        txSummoner.dispose();
     }
 
     public void crearPowerUpEn(float x, float y, TipoPowerUp tipo) {
@@ -599,52 +602,80 @@ public class PantallaJuego implements Screen {
         }
 
         // [MEJORADO: Lógica de aparición de Thomas en Ronda 2, y otros jefes en Múltiplos de 5]
-        if (ronda % 5 == 0 ) {
-            // Limpiamos enemigos pendientes para que sea un duelo 1 vs 1
+        if (ronda % 5 == 0) {
             enemigosPendientes.clear();
 
             OleadaFactory factoryBoss = new EnemigoT4(
-                txBoss_1,       // Boss 1
-                txBalaEnemiga,  // Bala
-                txBossThomas,   // Boss 2 (Thomas)
-                txBossBlackShip,  // Boss 3 (BlackShip) - Usamos el carguero grande como "skin" por ahora
-                txEnemigo       // Minion - Usamos el kamikaze normal para lo que suelta la nave
+                txBoss_1, txBalaEnemiga, txBossThomas, txBossBlackShip, txEnemigo
             );
 
             EntidadJuego jefe = null;
-            float cx = viewport.getWorldWidth() / 2; // Centro X
-            float cy = 900; // Arriba Y
+            float cx = viewport.getWorldWidth() / 2;
+            float cy = 900;
 
-            // 2. Selección de Jefe
+            // 1. RONDA 5: MOTHERSHIP
             if (ronda == 5) {
-                jefe = factoryBoss.createEnemigoT1(cx - 125, cy, this); // Boss 1
+                jefe = factoryBoss.createEnemigoT1(cx - 125, cy, this);
                 if (jefe instanceof Boss) ((Boss)jefe).setNombre("MOTHERSHIP OMEGA");
             }
+            // 2. RONDA 10: THOMAS
             else if (ronda == 10) {
-                jefe = factoryBoss.createEnemigoT2(cx, cy, this); // Thomas
+                jefe = factoryBoss.createEnemigoT2(cx, cy, this);
                 if (jefe instanceof Boss) ((Boss)jefe).setNombre("THOMAS EL ARRASADOR");
             }
-            else if (ronda >= 15) {
-                jefe = factoryBoss.createEnemigoT3(cx - 150, cy, this); // BlackShip
+            // 3. RONDA 15: BLACK SHIP
+            else if (ronda == 15) {
+                jefe = factoryBoss.createEnemigoT3(cx - 150, cy, this);
                 if (jefe instanceof Boss) ((Boss)jefe).setNombre("TITÁN DE MATERIA OSCURA");
             }
+            // 4. RONDA 20: EL INVOCADOR SUPREMO (Asegurado)
+            else if (ronda == 20) {
+                // Lo creamos directo porque necesita muchas texturas que la Factory no tiene
+                int vidaBoss = 3500; // Mucha vida, es ronda 20
+
+                jefe = new BossSummoner(
+                    cx - 100, cy,
+                    txSummoner,       // Skin (puedes cambiarla si tienes una 'txSummoner')
+                    txBalaEnemiga,
+                    vidaBoss,
+                    "EL INVOCADOR SUPREMO",
+                    txEnemigo,      // Kamikaze
+                    txTank,         // Tanque
+                    txHealer,       // Healer
+                    txBossThomas,   // Thomas (Mini)
+                    txBossBlackShip,// BlackShip (Mini)
+                    txEnemigo,      // Minion Base
+                    nave            // Jugador
+                );
+            }
+            // 5. RONDAS 25+: Jefes Aleatorios o Cíclicos
             else {
-                // Fallback (Jefe Aleatorio o Repetido)
-                jefe = factoryBoss.createEnemigoT1(cx - 125, cy, this);
-                if (jefe instanceof Boss) ((Boss)jefe).setNombre("MOTHERSHIP BETA");
+                // Ejemplo: Elegir uno al azar para el "Endgame" infinito
+                int azar = MathUtils.random(0, 3);
+                switch(azar) {
+                    case 0: jefe = factoryBoss.createEnemigoT1(cx - 125, cy, this); break;
+                    case 1: jefe = factoryBoss.createEnemigoT2(cx, cy, this); break;
+                    case 2: jefe = factoryBoss.createEnemigoT3(cx - 150, cy, this); break;
+                    case 3:
+                        // Repetir invocador con más vida
+                        jefe = new BossSummoner(cx - 100, cy, txBoss_1, txBalaEnemiga, 3000 + (ronda * 100), "EL INVOCADOR (RENACIDO)", txEnemigo, txTank, txHealer, txBossThomas, txBossBlackShip, txEnemigo, nave);
+                        break;
+                }
+                // Asegurar nombre genérico si salió de la factory
+                if (jefe instanceof Boss && ((Boss)jefe).getNombre() == null) {
+                    ((Boss)jefe).setNombre("JEFE NIVEL " + ronda);
+                }
             }
 
-            // 3. Asignar
+            // Asignar y Activar
             if (jefe instanceof Boss) {
                 jefeActivo = (Boss) jefe;
+                // Aplicamos dificultad (vida extra y velocidad)
+                jefeActivo.aumentarDificultad(getFactorDificultad());
                 enemigos.add(jefe);
             }
 
-            if (jefeActivo != null) {
-                jefeActivo.aumentarDificultad(getFactorDificultad());
-            }
-
-            return; // FIN, no spawneamos enemigos normales
+            return; // Fin del spawner de jefe
         }
 
 
@@ -683,7 +714,7 @@ public class PantallaJuego implements Screen {
                 int dado = r.nextInt(100);
 
                     if (ronda > 18 && dado < 1 && presupuesto >= 80) {
-                    int vidaElite = 1500 + (ronda * 20);
+                    int vidaElite = 1000 + (ronda * 20);
 
                     // Nota: Pásale null o un Kamikaze como minion si tu constructor lo pide
                     nuevoEnemigo = new BossBlackShip(x, y, txBossBlackShip, txBalaEnemiga, txEnemigo, vidaElite, "BLACK SHIP (VANGUARDIA)");
@@ -752,6 +783,35 @@ public class PantallaJuego implements Screen {
                         break;
                     }
                 }
+                // JEFE INVOCADOR (Coste muy alto, Ronda avanzada)
+                if (ronda > 10 && dado < 2 && presupuesto >= 100) {
+
+                    int vidaBoss = 2000 + (ronda * 50); // Mucha vida
+
+                    // Nota la cantidad de parámetros:
+                    // x, y, txSelf, txBala, vida, nombre,
+                    // txKamikaze, txTanque, txHealer, txThomas, txBlackShip, jugador
+
+                    nuevoEnemigo = new BossSummoner(
+                        1200/2, 900,
+                        txSummoner,       // Usamos Boss1 como skin o crea una txSummoner
+                        txBalaEnemiga,
+                        vidaBoss,
+                        "THE OVERLORD",
+                        txEnemigo,      // Kamikaze
+                        txTank,         // Tanque
+                        txHealer,       // Healer
+                        txBossThomas,   // Thomas
+                        txBossBlackShip,// BlackShip
+                        txEnemigo,      // Kamikaze
+                        nave            // Jugador
+                    );
+
+                    costo = 20; // Coste muy alto porque invoca a otros que valen puntos
+                }
+
+
+
             }
 
             // --- APLICAR LA DIFICULTAD ---
