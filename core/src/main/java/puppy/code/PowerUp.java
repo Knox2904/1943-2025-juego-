@@ -1,6 +1,8 @@
 package puppy.code;
 
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 
 
@@ -9,10 +11,12 @@ public abstract class PowerUp extends GameObject {
     private float scrollSpeed = 100f;
     private boolean destroyed = false;
     protected TipoPowerUp tipo;
+    protected Sound sonido;
 
-    public PowerUp(float x, float y, Texture texture) {
+    public PowerUp(float x, float y, Texture texture , Sound sonido) {
         super(x, y, texture);
         this.hitbox = new Rectangle(x, y, texture.getWidth(), texture.getHeight());
+        this.sonido = sonido;
     }
 
 
@@ -27,8 +31,11 @@ public abstract class PowerUp extends GameObject {
 
 
     private void reproducirSonido() {
-        // sonidoPowerUp.play();
-        System.out.println("Sonido de PowerUp recogido");
+        if (sonido != null) {
+            long id = sonido.play(1.0f); // Volumen máximo
+            // Opcional: Variar el tono un poquito para que suene natural
+            sonido.setPitch(id, MathUtils.random(0.9f, 1.1f));
+        }
     }
 
     public void destruir() {

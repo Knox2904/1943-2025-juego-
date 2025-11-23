@@ -13,6 +13,10 @@ public class Boss extends EntidadJuego {
     private Texture txBala;
     protected int vidaBaseInicial;
 
+    private float timerCombustible = 0;
+    // Cada 15 segundos cae una vida. Ajusta esto según la dificultad.
+    private final float TIEMPO_ENTRE_COMBUSTIBLES = 15.0f;
+
     // Fases del Jefe
     // 0: Entrando, 1: Fase Normal, 2: Fase Furiosa (50% vida)
     protected int fase = 0;
@@ -77,6 +81,15 @@ public class Boss extends EntidadJuego {
                 else spr.setColor(1f, 0.6f, 0.6f, 1f);
             }
         }
+
+        timerCombustible += delta;
+
+        if (timerCombustible > TIEMPO_ENTRE_COMBUSTIBLES) {
+            timerCombustible = 0;
+            solicitarAyuda(juego);
+        }
+
+
     }
 
     protected void movimientoCombate(float delta) {
@@ -84,6 +97,24 @@ public class Boss extends EntidadJuego {
         position.x = (1200 / 2 - spr.getWidth()/2) + MathUtils.sin(tiempoVida * 0.5f) * 300f;
         position.y = 600 + MathUtils.cos(tiempoVida * 1.0f) * 50f;
     }
+
+    private void solicitarAyuda(PantallaJuego juego) {
+        // Generamos una posición X aleatoria dentro de la pantalla (con margen)
+        // Asumiendo ancho 1200: entre 50 y 1150
+        float randomX = MathUtils.random(50, 1150);
+
+        // Y = 800 (Arriba de la pantalla, para que caiga)
+        float spawnY = 810;
+
+
+        juego.crearPowerUpEn(randomX, spawnY, TipoPowerUp.COMBUSTIBLE);
+
+        // Opcional: Reproducir un sonido de "Ayuda en camino" si quieres
+    }
+
+
+
+
 
     protected void disparar(float delta, PantallaJuego juego) {
         fireTimer += delta;

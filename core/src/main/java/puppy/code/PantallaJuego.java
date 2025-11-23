@@ -6,7 +6,6 @@ import java.util.Random;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -81,6 +80,10 @@ public class PantallaJuego implements Screen {
 
     private boolean isPaused = false;
     private ShapeRenderer shapeRenderer;
+    private Sound soundCombustible;
+    private Sound mejoraArma;
+    private Sound soundEscudo ;
+    private Sound soundAliado ;
 
 
 
@@ -125,6 +128,11 @@ public class PantallaJuego implements Screen {
         txEscudo = new Texture(Gdx.files.internal("escudo.png"));
         txPowerFuel = new Texture(Gdx.files.internal("vida.png"));
         txPowerAliado = new Texture(Gdx.files.internal("companion.png"));
+        soundCombustible = Gdx.audio.newSound(Gdx.files.internal("bueno.mp3"));
+        mejoraArma = Gdx.audio.newSound(Gdx.files.internal("mejoraArma.mp3"));
+        soundEscudo = Gdx.audio.newSound(Gdx.files.internal("ponerEscudo.mp3"));
+        soundAliado = Gdx.audio.newSound(Gdx.files.internal("aliado.mp3"));
+
 
 
         soundShieldBreak = Gdx.audio.newSound(Gdx.files.internal("escudoRopiendose.mp3"));
@@ -517,7 +525,8 @@ public class PantallaJuego implements Screen {
         txBossThomas.dispose(); // [MEJORADO: Agregada]
         txBoss_1.dispose(); // [MEJORADO: Agregada]
         txBalaBoss.dispose();
-        txBossBlackShip.dispose();// [MEJORADO: Agregada]
+        txBossBlackShip.dispose();
+        soundCombustible.dispose();// [MEJORADO: Agregada]
     }
 
     public void crearPowerUpEn(float x, float y, TipoPowerUp tipo) {
@@ -525,16 +534,16 @@ public class PantallaJuego implements Screen {
 
         switch (tipo) {
             case MEJORA_ARMA:
-                p = new PowerUpArma(x, y, powerUpTexture, this);
+                p = new PowerUpArma(x, y, powerUpTexture, this , mejoraArma);
                 break;
             case COMBUSTIBLE:
-                p = new PowerUpCombustible(x, y, this.txPowerFuel);
+                p = new PowerUpCombustible(x, y, this.txPowerFuel , soundCombustible);
                 break;
             case NAVE_ALIADA:
-                p = new PowerUpAliado(x, y, this.txPowerAliado);
+                p = new PowerUpAliado(x, y, this.txPowerAliado , soundAliado);
                 break;
             case ESCUDO:
-                p = new PowerUpEscudo(x, y, this.txEscudo);
+                p = new PowerUpEscudo(x, y, this.txEscudo , soundEscudo);
                 break;
         }
 

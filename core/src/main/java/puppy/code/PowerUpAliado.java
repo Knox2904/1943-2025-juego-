@@ -1,11 +1,12 @@
 package puppy.code;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 
 public class PowerUpAliado extends PowerUp {
 
-    public PowerUpAliado(float x, float y, Texture texture) {
+    public PowerUpAliado(float x, float y, Texture texture , Sound sonido) {
 
-        super(x, y, texture);
+        super(x, y, texture , sonido);
         spr.setSize(40, 40);
         hitbox.setSize(40, 40);
         spr.setOriginCenter();

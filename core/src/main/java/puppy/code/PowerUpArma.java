@@ -1,12 +1,13 @@
 package puppy.code;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 
 public class PowerUpArma extends PowerUp {
 
     private PantallaJuego juego; // Necesitamos 'juego' para mejorarArma
 
-    public PowerUpArma(float x, float y, Texture texture, PantallaJuego juego) {
-        super(x, y, texture);
+    public PowerUpArma(float x, float y, Texture texture, PantallaJuego juego , Sound sonido) {
+        super(x, y, texture , sonido);
         this.juego = juego;
     }
 

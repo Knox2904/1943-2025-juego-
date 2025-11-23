@@ -1,10 +1,11 @@
 package puppy.code;
 
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 
 public class PowerUpEscudo extends PowerUp {
-    public PowerUpEscudo(float x, float y, Texture tx) {
-        super(x, y, tx);
+    public PowerUpEscudo(float x, float y, Texture tx , Sound sonido) {
+        super(x, y, tx , sonido);
 
 
         spr.setSize(40, 40);
