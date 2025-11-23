@@ -125,4 +125,8 @@ public class Boss extends EntidadJuego {
     // Getters para la barra de vida
     public int getVidaActual() { return vidaActual; }
     public int getVidaMax() { return vidaMax; }
+
+    public Texture getTxBala() {
+        return this.txBala;
+    }
 }

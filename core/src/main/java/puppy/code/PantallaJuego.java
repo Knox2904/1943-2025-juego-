@@ -612,7 +612,13 @@ public class PantallaJuego implements Screen {
             // Limpiamos enemigos pendientes para que sea un duelo 1 vs 1
             enemigosPendientes.clear();
 
-            OleadaFactory factoryBoss = new EnemigoT4(txBoss_1, txBalaEnemiga, txBossThomas);
+            OleadaFactory factoryBoss = new EnemigoT4(
+                txBoss_1,       // Boss 1
+                txBalaEnemiga,  // Bala
+                txBossThomas,   // Boss 2 (Thomas)
+                txCargueroBig,  // Boss 3 (BlackShip) - Usamos el carguero grande como "skin" por ahora
+                txEnemigo       // Minion - Usamos el kamikaze normal para lo que suelta la nave
+            );
 
             EntidadJuego jefe = null;
             float cx = viewport.getWorldWidth() / 2; // Centro X
@@ -626,14 +632,11 @@ public class PantallaJuego implements Screen {
                 jefe = factoryBoss.createEnemigoT2(cx, cy, this); // Thomas
             }
             else if (ronda >= 15) {
-                // Por ahora repetimos T1 o T2 aleatorio hasta tener el T3
-                if(MathUtils.randomBoolean())
-                    jefe = factoryBoss.createEnemigoT1(cx - 125, cy, this);
-                else
-                    jefe = factoryBoss.createEnemigoT2(cx, cy, this);
+
+                jefe = factoryBoss.createEnemigoT3(cx - 150, cy, this);
             }
             else {
-                // Fallback
+                // Fallback por seguridad
                 jefe = factoryBoss.createEnemigoT1(cx - 125, cy, this);
             }
 
