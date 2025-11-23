@@ -73,7 +73,8 @@ public class UpgradeScreen implements Screen {
         todasLasMejoras.add(new UpgradeCard("Cadencia Aumentada", "+15% Disparo", TipoMejora.CADENCIA_DISPARO));
         todasLasMejoras.add(new UpgradeCard("Munición Potenciada", "+1 Daño", TipoMejora.DAÑO_EXTRA));
         todasLasMejoras.add(new UpgradeCard("Tecnología de Arma", "Desbloquea nuevos cañones", TipoMejora.EXPANSION_CANON));
-        // Agrega más si tienes...
+        todasLasMejoras.add(new UpgradeCard("Tanques de Reserva", "+20% Combustible Máximo", TipoMejora.COMBUSTIBLE_MAXIMO));
+        todasLasMejoras.add(new UpgradeCard("Balas de Titanio", "Perforación +1 (Atraviesa enemigos)", TipoMejora.BALAS_PERFORANTES));
     }
 
     @Override

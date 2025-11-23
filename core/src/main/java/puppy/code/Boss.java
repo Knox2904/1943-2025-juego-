@@ -7,10 +7,11 @@ import com.badlogic.gdx.math.Rectangle;
 
 public class Boss extends EntidadJuego {
 
-    private int vidaMax;
+    protected int vidaMax;
     private float fireTimer = 0;
     private float tiempoEntreDisparos = 1.0f; // Dispara cada segundo
     private Texture txBala;
+    protected int vidaBaseInicial;
 
     // Fases del Jefe
     // 0: Entrando, 1: Fase Normal, 2: Fase Furiosa (50% vida)
@@ -20,8 +21,10 @@ public class Boss extends EntidadJuego {
     public Boss(float x, float y, Texture tx, Texture txBala , int vidaInicial) {
         // Velocidad baja (se mueve lento), Vida 500 (¡Es un tanque!)
         super(tx, x, y, 60f, vidaInicial);
+        this.vidaBaseInicial = vidaInicial ;
         this.vidaMax = vidaInicial;
         this.txBala = txBala;
+
 
         // LO HACEMOS GIGANTE
         spr.setSize(250, 150);
@@ -129,4 +132,25 @@ public class Boss extends EntidadJuego {
     public Texture getTxBala() {
         return this.txBala;
     }
+
+    protected void aumentarDificultad(float factorRonda) {
+        float factorSalud = BuffManager.getInstance().getEnemyHealthMultiplier();
+
+        // 1. ESCALADO DE VIDA (Común a todos los jefes)
+        // La vida escalada se calcula a partir del valor base, NO del valor actual.
+        int nuevaVida = (int) (this.vidaBaseInicial * factorRonda * factorSalud);
+
+        this.vidaActual = nuevaVida;
+        this.vidaMax = nuevaVida;
+
+        // 2. ESCALADO DE DISPARO (Común a todos los jefes)
+        // Hacemos que la cadencia base del Boss genérico se acelere
+        float nuevaCadencia = 1.0f / factorRonda;
+        this.tiempoEntreDisparos = nuevaCadencia;
+        if (this.tiempoEntreDisparos < 0.25f) this.tiempoEntreDisparos = 0.25f; // Tope de seguridad
+
+        // No hay lógica específica de movimiento o spawn aquí, eso lo hacen las subclases.
+    }
+
+
 }

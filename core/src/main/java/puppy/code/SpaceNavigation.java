@@ -39,6 +39,8 @@ public class SpaceNavigation extends Game {
         }
         if (gameMusic != null) gameMusic.dispose();
 
+        float volumenActual = Configuracion.getInstance().getMusicVolume();
+
 
         String[] listaCanciones = {
             //juego
@@ -75,7 +77,7 @@ public class SpaceNavigation extends Game {
             }
         });
 
-        gameMusic.setVolume(0.7f);
+        gameMusic.setVolume(volumenActual);
         gameMusic.play();
     }
 
@@ -84,6 +86,8 @@ public class SpaceNavigation extends Game {
         if (gameMusic != null && gameMusic.isPlaying()) {
             return;
         }
+
+        float volumenActual = Configuracion.getInstance().getMusicVolume();
 
 
         String[] listaCanciones = {
@@ -111,7 +115,7 @@ public class SpaceNavigation extends Game {
             }
         });
 
-        gameMusic.setVolume(0.7f);
+        gameMusic.setVolume(volumenActual);
         gameMusic.play();
     }
 
@@ -151,6 +155,12 @@ public class SpaceNavigation extends Game {
 	public void setHighScore(int highScore) {
 		this.highScore = highScore;
 	}
+
+    public void updateMusicVolume() {
+        if (gameMusic != null) {
+            gameMusic.setVolume(Configuracion.getInstance().getMusicVolume());
+        }
+    }
 
 
 

@@ -17,6 +17,7 @@ public enum TipoMejora {
     DAÑO_EXTRA,
     VELOCIDAD_BALA,
     EXPANSION_CANON,
+    BALAS_PERFORANTES,
 
     // --- Mejoras de Aliados ---
     ALIADO_EXTRA, // (Para el sistema que ya tienes)

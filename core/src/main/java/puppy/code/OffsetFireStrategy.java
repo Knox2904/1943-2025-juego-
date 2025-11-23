@@ -12,11 +12,12 @@ public class OffsetFireStrategy implements IFireStrategy {
     }
 
     @Override
-    public void fire(PantallaJuego juego, Texture txBala, float spawnX, float spawnY , int damage) {
+    public void fire(PantallaJuego juego, Texture txBala, float spawnX, float spawnY , int damage , int piercing) {
 
         for (float offset : offsets) {
             Bullet bala = new Bullet(spawnX + offset, spawnY, 0, 3, txBala);
             bala.setDamage(damage);
+            bala.setPiercing(piercing);
             juego.agregarBala(bala);
         }
     }

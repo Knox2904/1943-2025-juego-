@@ -14,7 +14,7 @@ public class FanFireStrategy implements IFireStrategy {
     }
 
     @Override
-    public void fire(PantallaJuego juego, Texture txBala, float x, float y , int damage) {
+    public void fire(PantallaJuego juego, Texture txBala, float x, float y , int damage , int piercing) {
         float bulletSpeed = 10f; // Velocidad de la bala
 
         for (float angle : angles) {
@@ -26,6 +26,7 @@ public class FanFireStrategy implements IFireStrategy {
 
 
             b.setRotation(angle - 90);
+            b.setPiercing(piercing);
             b.setDamage(damage);
             juego.agregarBala(b);
         }

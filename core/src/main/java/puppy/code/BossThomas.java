@@ -254,4 +254,36 @@ public class BossThomas extends Boss {
             Gdx.gl.glDisable(Gdx.gl.GL_BLEND);
         }
     }
+
+    @Override
+    public void aumentarDificultad(float factorRonda) {
+        float factorSalud = BuffManager.getInstance().getEnemyHealthMultiplier();
+        float factorVelocidad = BuffManager.getInstance().getEnemySpeedMultiplier();
+
+        // 1. ESCALADO DE VIDA (Común, basado en Boss.vidaBaseInicial)
+        int nuevaVida = (int) (this.vidaBaseInicial * factorRonda * factorSalud * 1.5f); // 1.5x por ser jefe de embestida
+        this.vidaActual = nuevaVida;
+        this.vidaMax = nuevaVida;
+
+        // 2. ESCALADO DE VELOCIDADES DE EMBESTIDA (Específico de Thomas)
+        // Cuanto más alta la ronda, más rápido se mueve en ambas fases.
+        float escaladoVel = 1.0f + (factorRonda - 1) * 0.2f; // Aumenta 20% por factorRonda.
+
+        // Aplicamos el escalado a las variables base de Thomas.
+        // FASE 1
+        this.velocidadActualEmbestida = VEL_CARGA_NORMAL * escaladoVel;
+        this.tiempoPreparacionActual = TIEMPO_PREP_NORMAL / escaladoVel; // Menos tiempo para prepararse
+        this.tiempoBusquedaActual = TIEMPO_BUSQUEDA_NORMAL / escaladoVel;
+
+        // FASE 2 (Modo Furia, aún más rápido)
+        // Usamos las variables originales de Furia y las aceleramos un poco más
+        this.velocidadActualEmbestida = VEL_CARGA_FURIA * escaladoVel;
+        this.tiempoPreparacionActual = TIEMPO_PREP_FURIA / (escaladoVel * 1.2f);
+        this.tiempoBusquedaActual = TIEMPO_BUSQUEDA_FURIA / (escaladoVel * 1.2f);
+
+        // 3. ESCALADO DE DISPARO (Usamos la lógica base de Boss)
+        super.aumentarDificultad(factorRonda);
+    }
+
+
 }

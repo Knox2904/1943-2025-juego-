@@ -5,6 +5,9 @@ public class BuffManager {
 
     private static BuffManager instance;
 
+    private float maxFuelModifier; // Multiplicador de combustible
+    private int piercingLevel;     // Cuántos enemigos atraviesa la bala
+
 
     private BuffManager() {
         this.playerSpeedModifier = 1.0f;
@@ -12,6 +15,8 @@ public class BuffManager {
         this.extraDamage = 0;
         this.maxWeaponLevel = 1;
         this.totalUpgradesApplied = 0;
+        this.maxFuelModifier = 1.0f; // 1.0 = 100% (Normal)
+        this.piercingLevel = 0; // 0 = Se destruye al primer contacto
     }
 
     //método público para OBTENER la instancia
@@ -71,6 +76,12 @@ public class BuffManager {
 
                 if (this.maxWeaponLevel > 4) this.maxWeaponLevel = 4;
                 break;
+            case COMBUSTIBLE_MAXIMO:
+                this.maxFuelModifier += 0.20f; // +20% Combustible Máximo
+                break;
+            case BALAS_PERFORANTES:
+                this.piercingLevel += 1; // Atraviesa +1 enemigo
+                break;
         }
         this.totalUpgradesApplied++;
         increaseDifficulty();
@@ -99,6 +110,8 @@ public class BuffManager {
         this.extraDamage = 0;
         this.maxWeaponLevel = 1;
         this.totalUpgradesApplied = 0;
+        this.maxFuelModifier = 1.0f;
+        this.piercingLevel = 0;
 
         // --- Resetea Enemigos  ---
         this.enemySpeedMultiplier = 1.0f;
@@ -127,6 +140,8 @@ public class BuffManager {
     public int getTotalUpgradesApplied() {
         return this.totalUpgradesApplied;
     }
+    public float getMaxFuelMultiplier() { return this.maxFuelModifier; }
+    public int getPiercingLevel() { return this.piercingLevel; }
 
 
 

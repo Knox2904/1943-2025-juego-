@@ -6,7 +6,6 @@ import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 
 import java.util.ArrayList;
@@ -15,7 +14,7 @@ public class Nave4 extends GameObject implements IDestruible {
 
     private boolean destruida = false;
     private float combustible;
-    private final float MAX_COMBUSTIBLE = 100f; // 100% de combustible
+    private float baseMaxCombustible = 100f; // 100% de combustible
     private final float CONSUMO_POR_SEGUNDO = 2f; // Gasto pasivo
 
     // Constante de daño (para usar en checkCollision si quieres)
@@ -49,7 +48,7 @@ public class Nave4 extends GameObject implements IDestruible {
         sonidoHerido = soundChoque;
         this.soundBala = soundBala;
         this.txBala = txBala;
-        this.combustible = MAX_COMBUSTIBLE;
+        this.combustible = baseMaxCombustible;
         spr = new Sprite(tx);
         spr.setPosition(x, y);
         spr.setBounds(x, y, 45, 45);
@@ -128,9 +127,11 @@ public class Nave4 extends GameObject implements IDestruible {
                 int dañoExtra = BuffManager.getInstance().getDamageBuff();
                 int dañoTotal = dañoBase + dañoExtra;
 
+                int piercing = BuffManager.getInstance().getPiercingLevel();
+
                 // --- PASAR DAÑO A LA ESTRATEGIA ---
-                fireStrategy.fire(juego, txBala, spawnX, spawnY, dañoTotal);
-                soundBala.play(0.25f);
+                fireStrategy.fire(juego, txBala, spawnX, spawnY, dañoTotal , piercing);
+                soundBala.play(Configuracion.getInstance().getSoundVolume());
 
                 float fireRateMod = BuffManager.getInstance().getFireRateModifier();
 
@@ -221,7 +222,7 @@ public class Nave4 extends GameObject implements IDestruible {
 
         if (tieneEscudo) {
             tieneEscudo = false;
-            soundShieldBreak.play(1.0f);
+            soundShieldBreak.play(Configuracion.getInstance().getSoundVolume());
             herido = true;
             tiempoHerido = tiempoHeridoMax;
             return;
@@ -233,7 +234,7 @@ public class Nave4 extends GameObject implements IDestruible {
         combustible -= cantidad;
         herido = true;
         tiempoHerido = tiempoHeridoMax;
-        sonidoHerido.play();
+        sonidoHerido.play(Configuracion.getInstance().getSoundVolume());
 
         // 4. LÓGICA DE ARMA MÁS JUSTA (Bajar solo 1 nivel)
         if (nivelArma > 0) {
@@ -283,8 +284,9 @@ public class Nave4 extends GameObject implements IDestruible {
 
     public void agregarCombustible(float cantidad) {
         this.combustible += cantidad;
-        if (this.combustible > MAX_COMBUSTIBLE) {
-            this.combustible = MAX_COMBUSTIBLE;
+        // Usamos el getter dinámico para el tope
+        if (this.combustible > getMaxCombustible()) {
+            this.combustible = getMaxCombustible();
         }
     }
 
@@ -310,7 +312,7 @@ public class Nave4 extends GameObject implements IDestruible {
 
     public int getX() { return (int) spr.getX(); }
     public int getY() { return (int) spr.getY(); }
-    public float getMaxCombustible() { return this.MAX_COMBUSTIBLE; }
+    public float getMaxCombustible() { return baseMaxCombustible * BuffManager.getInstance().getMaxFuelMultiplier(); }
     public float getCombustible() { return this.combustible; }
 
     public void activarEscudo() {

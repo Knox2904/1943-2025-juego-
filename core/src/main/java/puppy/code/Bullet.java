@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
+import java.util.ArrayList;
 
 
 public class Bullet implements IDestruible {
@@ -14,6 +15,8 @@ public class Bullet implements IDestruible {
 	private boolean destroyed = false;
 	private Sprite spr;
     private int damage = 1;
+    private int piercingCount = 0;
+    private ArrayList<EntidadJuego> victimas;
 
 	    public Bullet(float x, float y, float xSpeed, float ySpeed, Texture tx) {
 	    	spr = new Sprite(tx);
@@ -28,9 +31,15 @@ public class Bullet implements IDestruible {
             this.ySpeed = ySpeed;
 
             spr.getBoundingRectangle().setPosition(x, y);
+            this.victimas = new ArrayList<>();
 
 
 	    }
+
+        public void setPiercing(int piercing) {
+        this.piercingCount = piercing;
+        }
+
 	    public void update() {
 	        spr.setPosition(spr.getX()+xSpeed, spr.getY()+ySpeed);
             if (spr.getX() < -50 || spr.getX() > Config.ANCHO_MUNDO + 50) {
@@ -47,32 +56,19 @@ public class Bullet implements IDestruible {
 	    	spr.draw(batch);
 	    }
 
-	    public boolean checkCollision(Ball2 b2) {
-	        if(spr.getBoundingRectangle().overlaps(b2.getHitbox())){
-	        	// Se destruyen ambos
-	            this.destroyed = true;
-	            return true;
-
-	        }
-	        return false;
-	    }
-
-
-        public boolean checkCollision(Kamikaze k) {
-            if(spr.getBoundingRectangle().overlaps(k.getHitbox())){
-                // Se destruyen ambos
-                this.destroyed = true;
-                return true;
-            }
-            return false;
-        }
-
         @Override
 	    public boolean estaDestruido() {return this.destroyed;}
 
         @Override
         public void recibirHit(int cantidad, float delta) {
-            this.destroyed = true;
+            // Si tiene piercing, restamos uno a la "vida" de la bala
+            if (piercingCount > 0) {
+                piercingCount--;
+                // La bala NO se destruye todavía
+            } else {
+                // Si no le queda piercing, se destruye normal
+                this.destroyed = true;
+            }
         }
 
         @Override
@@ -94,8 +90,7 @@ public class Bullet implements IDestruible {
     // ESTE METODO FUNCIONA PARA CUALQUIER ENEMIGO (Kamikaze, KamikazeS, Tank, etc.)
     public boolean checkCollision(com.badlogic.gdx.math.Rectangle rect) {
         if (spr.getBoundingRectangle().overlaps(rect)) {
-            // Se destruye la bala
-            this.destroyed = true;
+
             return true;
         }
         return false;
@@ -109,6 +104,12 @@ public class Bullet implements IDestruible {
     }
     public int getDamage() {
         return this.damage;
+    }
+    public boolean yaGolpeo(EntidadJuego enemigo) {
+        return victimas.contains(enemigo);
+    }
+    public void registrarGolpe(EntidadJuego enemigo) {
+        victimas.add(enemigo);
     }
 
 }

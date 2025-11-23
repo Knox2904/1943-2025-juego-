@@ -17,6 +17,7 @@ public class CargueroPesado extends EntidadJuego {
     private Texture txKamikaze;
     private Texture txKamikazeS;
     private Texture txEliminaBuffs;
+    private float tiempoEntreSpawns = 2.0f;
 
     public CargueroPesado(float x, float y, Texture txSelf, Texture txTank, Texture txBala,
                           Texture txSmallCarrier, Texture txKamikaze, Texture txKamikazeS , Texture txEliminaBuffs) {
@@ -30,7 +31,12 @@ public class CargueroPesado extends EntidadJuego {
         this.txKamikazeS = txKamikazeS;
         this.txEliminaBuffs = txEliminaBuffs;
 
-        spr.setSize(128, 128);
+        // Ajuste de tamaño visual
+        spr.setSize(200, 200); // (Bajé de 500 a 300 para que no sea monstruoso)
+        spr.setOriginCenter();
+
+        // Ajuste de tamaño físico (Hitbox)
+        this.hitbox.setSize(200, 200);
     }
 
     @Override
@@ -61,7 +67,7 @@ public class CargueroPesado extends EntidadJuego {
         }
         // 2. SPAWNER (Cada 3 segundos)
         spawnTimer += delta;
-        if (spawnTimer > 3.0f) {
+        if (spawnTimer > tiempoEntreSpawns) {
             spawnTimer = 0;
             spawnearHijo(juego);
         }
@@ -78,4 +84,27 @@ public class CargueroPesado extends EntidadJuego {
             juego.agregarEnemigo(new Carguero(x, y, txSmallCarrier, txKamikaze, txKamikazeS, txEliminaBuffs , txBala));
         }
     }
+
+    public void aumentarDificultad(float factorRonda) {
+        float factorSalud = BuffManager.getInstance().getEnemyHealthMultiplier();
+        float factorVelocidad = BuffManager.getInstance().getEnemySpeedMultiplier();
+
+        // 1. VELOCIDAD (Aumenta poco, son naves pesadas)
+        // Usamos 0.2f para que no se vuelvan ferraris en rondas altas
+        this.velocidadPEI *= (1 + (factorRonda - 1) * 0.2f) * factorVelocidad;
+
+        // 2. VIDA (Escala MUCHO)
+        // Multiplicamos por 1.2 extra porque son naves grandes que deben aguantar
+        this.vidaActual = (int) (this.vidaActual * factorRonda * factorSalud * 1.2f);
+
+        // 3. CADENCIA DE SPAWN (En vez de disparo)
+        // Si factorRonda es 2.0, spawnean el doble de rápido.
+        this.tiempoEntreSpawns = 2.0f / factorRonda; // (O 3.0f / factorRonda para el Pesado)
+
+        // Tope de seguridad: Que no spawneen más rápido que cada 0.8 segundos
+        if (this.tiempoEntreSpawns < 0.5f) {
+            this.tiempoEntreSpawns = 0.5f;
+        }
+    }
+
 }

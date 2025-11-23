@@ -10,7 +10,15 @@ public class EliminaBuffs extends EntidadJuego {
     private PowerUp objetivo;
 
     public EliminaBuffs(float x, float y, Texture tx) {
+
         super(tx, x, y, 400f, 1);
+
+        // Ajuste de tamaño visual
+        spr.setSize(100, 100); // (Bajé de 500 a 300 para que no sea monstruoso)
+        spr.setOriginCenter();
+
+        // Ajuste de tamaño físico (Hitbox)
+        this.hitbox.setSize(100, 100);
     }
 
     @Override
@@ -97,4 +105,25 @@ public class EliminaBuffs extends EntidadJuego {
             }
         }
     }
+
+    public void aumentarDificultad(float factorRonda) {
+        float factorVelocidad = BuffManager.getInstance().getEnemySpeedMultiplier();
+        float factorSalud = BuffManager.getInstance().getEnemyHealthMultiplier();
+
+        // 1. VELOCIDAD (Lo más importante)
+        // Este debe escalar agresivamente para competir con el jugador
+        this.velocidadPEI *= factorRonda * factorVelocidad;
+
+        // Tope de velocidad para que no atraviese paredes (Tunneling)
+        if (this.velocidadPEI > 1400f) {
+            this.velocidadPEI = 1400f;
+        }
+
+        // 2. VIDA (Escala normal o bajo)
+        // Es una nave pequeña, no debería ser tanque.
+        // Quizás solo escala con la ronda, no con los buffs de salud del jugador.
+        this.vidaActual = (int) (this.vidaActual * factorRonda);
+    }
+
+
 }
