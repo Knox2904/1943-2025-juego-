@@ -89,12 +89,12 @@ public class BuffManager {
 
     public void increaseDifficulty() {
         // Cada mejora del jugador hace a los enemigos un 5% más rápidos
-        this.enemySpeedMultiplier += 0.05f;
+        this.enemySpeedMultiplier += 0.08f;
 
         // Y hace que aparezcan un 2% más seguido
         this.enemySpawnRateMultiplier += 2.00f;
 
-        this.enemyHealthMultiplier += 0.05f;
+        this.enemyHealthMultiplier += 0.15f;
     }
 
 

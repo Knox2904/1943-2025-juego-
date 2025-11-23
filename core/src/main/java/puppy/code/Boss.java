@@ -16,7 +16,7 @@ public class Boss extends EntidadJuego {
 
     private float timerCombustible = 0;
     // Cada 15 segundos cae una vida. Ajusta esto según la dificultad.
-    private final float TIEMPO_ENTRE_COMBUSTIBLES = 7.5f;
+    private final float TIEMPO_ENTRE_COMBUSTIBLES = 9f;
 
     // Fases del Jefe
     // 0: Entrando, 1: Fase Normal, 2: Fase Furiosa (50% vida)

@@ -218,7 +218,7 @@ public class PantallaJuego implements Screen {
             batch.draw(txBarraBoss, xBarra, yBarra, anchoBarra * porcentajeJefe, 20);
 
             // Texto del Jefe
-            game.getFont().draw(batch, "MOTHERSHIP OMEGA", xBarra, yBarra + 40);
+            game.getFont().draw(batch, jefeActivo.getNombre(), xBarra, yBarra + 40);
 
             // Resetear color
             batch.setColor(1, 1, 1, 1);
@@ -682,33 +682,23 @@ public class PantallaJuego implements Screen {
             else {
                 int dado = r.nextInt(100);
 
-                // A. Jefe 1 (Mantener como posibilidad si no es ronda de jefe principal)
-                // A. MINI BOSSES VARIADOS (Ronda > 7)
-                if (ronda > 7 && dado < 5 && presupuesto >= 10) {
+                    if (ronda > 18 && dado < 1 && presupuesto >= 80) {
+                    int vidaElite = 1500 + (ronda * 20);
 
-                    int tipoJefe = MathUtils.random(0, 2);
-                    // Vida reducida para versión "Elite" (Mini-Boss)
-                    int vidaElite = 300 + (ronda * 10);
+                    // Nota: Pásale null o un Kamikaze como minion si tu constructor lo pide
+                    nuevoEnemigo = new BossBlackShip(x, y, txBossBlackShip, txBalaEnemiga, txEnemigo, vidaElite, "BLACK SHIP (VANGUARDIA)");
+                    costo = 80;
+                }
 
-                    switch (tipoJefe) {
-                        case 0: // MOTHERSHIP
-                            Boss mBoss = new Boss(x, y, txBoss_1, txBalaEnemiga, vidaElite, "MOTHERSHIP (ELITE)");
-                            nuevoEnemigo = mBoss;
-                            break;
-
-                        case 1: // THOMAS
-                            // Thomas necesita al jugador ('nave') en su constructor
-                            BossThomas tBoss = new BossThomas(x, y, txBossThomas, txBalaEnemiga, vidaElite, nave, "THOMAS (PROTOTIPO)");
-                            nuevoEnemigo = tBoss;
-                            break;
-
-                        case 2: // BLACK SHIP
-                            // Aquí pasamos la textura del minion (txEnemigo o txKamikaze)
-                            BossBlackShip bBoss = new BossBlackShip(x, y, txBossBlackShip, txBalaEnemiga, txEnemigo, vidaElite, "BLACK SHIP (LIGERO)");
-                            nuevoEnemigo = bBoss;
-                            break;
-                    }
-                    costo = 10;
+                else if (ronda > 12 && dado < 3 && presupuesto >= 55) {
+                    int vidaElite = 1000 + (ronda * 15);
+                    nuevoEnemigo = new BossThomas(x, y, txBossThomas, txBalaEnemiga, vidaElite, nave, "THOMAS (RENEGADO)");
+                    costo = 55;
+                }
+                else if (ronda > 8 && dado < 7 && presupuesto >= 30) {
+                    int vidaElite = 600 + (ronda * 10);
+                    nuevoEnemigo = new Boss(x, y, txBoss_1, txBalaEnemiga, vidaElite, "MOTHERSHIP (SQUADRON)");
+                    costo = 30;
                 }
 
                 // CARGUEROS (T3)
@@ -792,7 +782,14 @@ public class PantallaJuego implements Screen {
                     ((Boss) nuevoEnemigo).aumentarDificultad(dificultad);
                 }
 
-                // 2. CORRECCIÓN DE POSICIÓN (NUEVO) 🛠
+
+                if (nuevoEnemigo instanceof Boss) {
+                    if (jefeActivo == null || jefeActivo.estaDestruido()) {
+                        jefeActivo = (Boss) nuevoEnemigo;
+                    }
+                }
+
+                // 2. CORRECCIÓN DE POSICIÓN (NUEVO)
                 // Verificamos si el enemigo se sale por la derecha y lo empujamos adentro
                 float anchoEnemigo = nuevoEnemigo.getHitbox().width; // O nuevoEnemigo.getWidth() si lo implementaste
                 float limiteDerecho = viewport.getWorldWidth();
